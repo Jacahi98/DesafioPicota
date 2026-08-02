@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { APP_VERSION } from "@/lib/version";
 
 export function Header() {
   return (
@@ -27,6 +28,7 @@ export function Header() {
           <span className="font-display text-lg italic leading-none text-[var(--ink)] sm:text-xl">
             Desafío Picota
           </span>
+          <span className="font-mono text-[10px] text-[var(--text-faint)]">v{APP_VERSION}</span>
         </a>
 
         <div className="flex items-center gap-5">
