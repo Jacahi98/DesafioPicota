@@ -23,7 +23,7 @@ function DuneContours() {
           key={i}
           d={d}
           fill="none"
-          stroke="var(--sand-gold)"
+          style={{ stroke: "var(--sand-gold)" }}
           strokeWidth="1"
           opacity={0.16 + i * 0.03}
         />

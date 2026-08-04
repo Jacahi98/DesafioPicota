@@ -68,15 +68,15 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex }: Props) {
     >
       <defs>
         <linearGradient id="elevation-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--sand-gold)" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="var(--sand-gold)" stopOpacity="0" />
+          <stop offset="0%" style={{ stopColor: "var(--sand-gold)" }} stopOpacity="0.35" />
+          <stop offset="100%" style={{ stopColor: "var(--sand-gold)" }} stopOpacity="0" />
         </linearGradient>
       </defs>
 
       {[eleMin, Math.round((eleMin + eleMax) / 2), eleMax].map((v) => (
         <g key={v}>
-          <line x1="0" x2={VW} y1={y(v)} y2={y(v)} stroke="var(--border)" strokeWidth="0.75" />
-          <text x="4" y={y(v) - 4} className="font-mono" fontSize="11" fill="var(--text-faint)">
+          <line x1="0" x2={VW} y1={y(v)} y2={y(v)} style={{ stroke: "var(--border)" }} strokeWidth="0.75" />
+          <text x="4" y={y(v) - 4} className="font-mono" fontSize="11" style={{ fill: "var(--text-faint)" }}>
             {v} m
           </text>
         </g>
@@ -93,7 +93,7 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex }: Props) {
       <motion.path
         d={lineD}
         fill="none"
-        stroke="var(--pine)"
+        style={{ stroke: "var(--pine)" }}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -103,14 +103,14 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex }: Props) {
         transition={{ duration: 1.4, ease: "easeInOut" }}
       />
 
-      <circle cx={summitX} cy={summitY} r="4" fill="var(--sand-gold)" />
+      <circle cx={summitX} cy={summitY} r="4" style={{ fill: "var(--sand-gold)" }} />
       <text
         x={summitX}
         y={summitY - 10}
         textAnchor="middle"
         className="font-mono"
         fontSize="11"
-        fill="var(--text-dim)"
+        style={{ fill: "var(--text-dim)" }}
       >
         La Picota
       </text>
@@ -122,20 +122,26 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex }: Props) {
             x2={hovered[0]}
             y1={PAD_TOP}
             y2={VH - PAD_BOTTOM}
-            stroke="var(--text-dim)"
+            style={{ stroke: "var(--text-dim)" }}
             strokeWidth="1"
             strokeDasharray="3,3"
           />
-          <circle cx={hovered[0]} cy={hovered[1]} r="5" fill="var(--sand-gold)" stroke="var(--paper)" strokeWidth="2" />
+          <circle
+            cx={hovered[0]}
+            cy={hovered[1]}
+            r="5"
+            style={{ fill: "var(--sand-gold)", stroke: "var(--paper)" }}
+            strokeWidth="2"
+          />
           <g transform={`translate(${Math.min(Math.max(hovered[0], 60), VW - 60)}, ${PAD_TOP - 12})`}>
-            <rect x="-58" y="-20" width="116" height="22" rx="3" fill="var(--ink)" opacity="0.9" />
+            <rect x="-58" y="-20" width="116" height="22" rx="3" style={{ fill: "var(--ink)" }} opacity="0.9" />
             <text
               x="0"
               y="-5"
               textAnchor="middle"
               className="font-mono"
               fontSize="11"
-              fill="var(--paper)"
+              style={{ fill: "var(--paper)" }}
             >
               {Math.round(hoveredTrack[2])} m · {(hoveredTrack[3] / 1000).toFixed(1)} km
             </text>
@@ -143,10 +149,17 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex }: Props) {
         </g>
       )}
 
-      <text x="0" y={VH - 8} className="font-mono" fontSize="11" fill="var(--text-faint)">
+      <text x="0" y={VH - 8} className="font-mono" fontSize="11" style={{ fill: "var(--text-faint)" }}>
         0 km
       </text>
-      <text x={VW} y={VH - 8} textAnchor="end" className="font-mono" fontSize="11" fill="var(--text-faint)">
+      <text
+        x={VW}
+        y={VH - 8}
+        textAnchor="end"
+        className="font-mono"
+        fontSize="11"
+        style={{ fill: "var(--text-faint)" }}
+      >
         {(routeStats.distanceM / 1000).toFixed(1)} km
       </text>
     </svg>

@@ -63,7 +63,7 @@ export function RouteMap({ hoveredIndex }: { hoveredIndex: number | null }) {
         <motion.path
           d={pathD}
           fill="none"
-          stroke="var(--sand-gold)"
+          style={{ stroke: "var(--sand-gold)" }}
           strokeWidth="2.75"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -77,7 +77,14 @@ export function RouteMap({ hoveredIndex }: { hoveredIndex: number | null }) {
         <circle cx={startX} cy={startY} r="5.5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
 
         {/* Cima de La Picota */}
-        <circle cx={summitX} cy={summitY} r="5" fill="var(--sand-gold)" stroke="#0a1108" strokeWidth="1.5" />
+        <circle
+          cx={summitX}
+          cy={summitY}
+          r="5"
+          style={{ fill: "var(--sand-gold)" }}
+          stroke="#0a1108"
+          strokeWidth="1.5"
+        />
         <text
           x={summitX + 11}
           y={summitY + 4}
@@ -106,7 +113,7 @@ export function RouteMap({ hoveredIndex }: { hoveredIndex: number | null }) {
 
         {hovered && (
           <g>
-            <circle cx={hovered[0]} cy={hovered[1]} r="9" fill="var(--sand-gold)" opacity="0.35" />
+            <circle cx={hovered[0]} cy={hovered[1]} r="9" style={{ fill: "var(--sand-gold)" }} opacity="0.35" />
             <circle cx={hovered[0]} cy={hovered[1]} r="5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
           </g>
         )}
