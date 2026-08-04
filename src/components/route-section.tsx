@@ -25,7 +25,7 @@ const waypoints = [
   {
     place: "La Picota",
     terrain: "Roca y viento",
-    text: "240 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
+    text: "232 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
   },
   {
     place: "Tolio",

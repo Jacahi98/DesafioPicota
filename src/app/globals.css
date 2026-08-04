@@ -1,38 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f3eee1;
-  --paper-raised: #fbf8f0;
-  --paper-sunken: #e9e1cd;
-  --border: #ddd2b8;
-  --ink: #1b1f1c;
-  --text-dim: #4e5851;
-  --text-faint: #8b8478;
+  /* Paleta extraída del logotipo (parche de trail run): crema, granate y teal. */
+  --paper: #f4ddb8;
+  --paper-raised: #faecd4;
+  --paper-sunken: #ecca9a;
+  --border: #dcb787;
+  --ink: #4a1010;
+  --text-dim: #7a3624;
+  --text-faint: #96755c;
 
-  --pine: #2e4638;
-  --pine-ink: #f3eee1;
-  --sea: #3f6e6b;
-  --sand-gold: #c9a25a;
+  --pine: #7a1a1a;
+  --pine-ink: #f4ddb8;
+  --sea: #005a64;
+  --sand-gold: #a84c00;
 
-  --shadow: 0 1px 2px rgba(27, 31, 28, 0.06), 0 12px 32px rgba(27, 31, 28, 0.08);
+  --shadow: 0 1px 2px rgba(74, 16, 16, 0.08), 0 12px 32px rgba(74, 16, 16, 0.1);
   --radius: 4px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #12160f;
-    --paper-raised: #1b211a;
-    --paper-sunken: #0c0f0a;
-    --border: #2c3329;
-    --ink: #f0ece0;
-    --text-dim: #b9c2b4;
-    --text-faint: #7c8579;
+    --paper: #1c0f0c;
+    --paper-raised: #271713;
+    --paper-sunken: #140a08;
+    --border: #3d2620;
+    --ink: #f2e2c8;
+    --text-dim: #d9b89a;
+    --text-faint: #b08f72;
 
-    --pine: #7cb597;
-    --pine-ink: #0e1410;
-    --sea: #7fbab5;
-    --sand-gold: #e3be7a;
+    --pine: #f08868;
+    --pine-ink: #1c0f0c;
+    --sea: #5fd0da;
+    --sand-gold: #ffb15c;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
@@ -40,18 +41,18 @@
 }
 
 :root[data-theme="dark"] {
-  --paper: #12160f;
-  --paper-raised: #1b211a;
-  --paper-sunken: #0c0f0a;
-  --border: #2c3329;
-  --ink: #f0ece0;
-  --text-dim: #b9c2b4;
-  --text-faint: #7c8579;
+  --paper: #1c0f0c;
+  --paper-raised: #271713;
+  --paper-sunken: #140a08;
+  --border: #3d2620;
+  --ink: #f2e2c8;
+  --text-dim: #d9b89a;
+  --text-faint: #b08f72;
 
-  --pine: #7cb597;
-  --pine-ink: #0e1410;
-  --sea: #7fbab5;
-  --sand-gold: #e3be7a;
+  --pine: #f08868;
+  --pine-ink: #1c0f0c;
+  --sea: #5fd0da;
+  --sand-gold: #ffb15c;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
   color-scheme: dark;

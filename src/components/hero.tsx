@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { routeStats } from "@/data/route-track";
 
 // Líneas de nivel que sugieren las dunas de Liencres vistas desde arriba —
 // no es decoración genérica, es el propio terreno de la carrera.
@@ -79,12 +80,15 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.25 }}
             className="mt-9 flex flex-wrap items-center gap-4"
           >
-            <span className="inline-flex items-center gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-2.5 text-sm font-medium text-[var(--text-dim)]">
+            <span
+              id="inscripcion"
+              className="inline-flex items-center gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-2.5 text-sm font-medium text-[var(--text-dim)]"
+            >
               Inscripciones · próximamente
             </span>
             <a
               href="#recorrido"
-              className="text-sm font-semibold text-[var(--pine)] underline decoration-[var(--sand-gold)] decoration-2 underline-offset-4"
+              className="text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--sand-gold)]"
             >
               Ver el recorrido ↓
             </a>
@@ -94,15 +98,15 @@ export function Hero() {
         <dl className="grid grid-cols-3 gap-x-8 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] lg:min-w-[280px] lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
           <div>
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Distancia</dt>
-            <dd className="text-2xl">14 km</dd>
+            <dd className="text-2xl">{(routeStats.distanceM / 1000).toFixed(1)} km</dd>
           </div>
           <div>
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Desnivel+</dt>
-            <dd className="text-2xl">310 m</dd>
+            <dd className="text-2xl">{routeStats.gainM} m</dd>
           </div>
           <div>
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Cota máx.</dt>
-            <dd className="text-2xl">240 m</dd>
+            <dd className="text-2xl">{routeStats.maxEle} m</dd>
           </div>
         </dl>
       </div>
