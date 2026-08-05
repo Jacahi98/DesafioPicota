@@ -106,6 +106,51 @@ body {
   display: block;
 }
 
+/* Título+stats y mapa/perfil de "El recorrido" viven en UNA sola caja
+   sticky (.route-pin-sticky), no dos separadas: dos sticky independientes
+   con alturas distintas se liberan del scroll en instantes distintos, y el
+   mapa/perfil (que se libera antes) queda flotando encima del título+stats
+   todavía fijo — bug real, visto haciendo scroll de verdad. Con una sola
+   caja sticky no puede haber ese desfase. Dentro, el mapa/perfil ocupa el
+   alto que sobra (flex:1 en .route-columns) tras el título+stats, así que
+   ni hace falta media una altura por JS ni puede desbordar por abajo:
+   height fija a 100svh menos header y margen inferior es el techo. */
+.route-pin-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: calc(100svh - 96px);
+  background: var(--paper);
+}
+.route-columns {
+  display: flex;
+  flex-direction: row;
+  gap: 1.25rem;
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+.route-map-col {
+  width: 25%;
+  height: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.route-profile-col {
+  width: 75%;
+  height: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.route-map-svg-wrap {
+  height: 100%;
+  width: 100%;
+}
+.route-profile-svg-wrap {
+  aspect-ratio: auto;
+  height: 100%;
+  width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

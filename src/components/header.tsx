@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { APP_VERSION } from "@/lib/version";
 
 export function Header() {
   return (
@@ -18,9 +17,6 @@ export function Header() {
           />
           <span className="truncate whitespace-nowrap font-display text-base italic leading-none text-[var(--ink)] sm:text-xl">
             Desafío Picota
-          </span>
-          <span className="hidden shrink-0 whitespace-nowrap font-mono text-[10px] text-[var(--text-faint)] sm:inline">
-            v{APP_VERSION}
           </span>
         </a>
 

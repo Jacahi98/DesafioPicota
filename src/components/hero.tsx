@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { routeStats } from "@/data/route-track";
 
 // Líneas de nivel que sugieren las dunas de Liencres vistas desde arriba —
@@ -34,14 +35,34 @@ function DuneContours() {
 }
 
 export function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  // El hero se desvanece y se encoge levemente al salir de vista, y el
+  // fondo de dunas se mueve a otro ritmo (parallax) — la salida de escena
+  // se siente dirigida, no un simple corte.
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const contentScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, -36]);
+  const duneY = useTransform(scrollYProgress, [0, 1], [0, 90]);
+
   return (
     <section
+      ref={sectionRef}
       id="top"
       className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--paper)]"
     >
-      <DuneContours />
+      <motion.div style={{ y: duneY }} className="absolute inset-0">
+        <DuneContours />
+      </motion.div>
 
-      <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-28 sm:px-8 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-36">
+      <motion.div
+        style={{ opacity: contentOpacity, scale: contentScale, y: contentY }}
+        className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-28 sm:px-8 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-36"
+      >
         <div className="max-w-2xl">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -109,7 +130,7 @@ export function Hero() {
             <dd className="text-2xl">{routeStats.maxEle} m</dd>
           </div>
         </dl>
-      </div>
+      </motion.div>
     </section>
   );
 }
