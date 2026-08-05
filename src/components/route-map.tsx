@@ -423,9 +423,11 @@ export function RouteMap({
       </svg>
 
       {/* Norte: fuera del SVG, fijo en la esquina de la tarjeta — dentro del
-          SVG se movería con la cámara en vez de quedarse quieto en pantalla. */}
+          SVG se movería con la cámara en vez de quedarse quieto en pantalla.
+          Esquina izquierda porque el botón de ampliar vista ocupa la derecha
+          en el modo no-móvil y tapaba la flecha ahí. */}
       <div
-        className="pointer-events-none absolute right-2 top-2 flex flex-col items-center gap-0.5 font-mono text-[10px] text-white"
+        className="pointer-events-none absolute left-3 top-3 flex flex-col items-center gap-0.5 font-mono text-[10px] text-white"
         style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
         aria-hidden="true"
       >
