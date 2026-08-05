@@ -138,6 +138,26 @@ export function RouteSection() {
   const mapWidth = expanded === "profile" ? "0%" : expanded === "map" ? "100%" : "25%";
   const profileWidth = expanded === "map" ? "0%" : expanded === "profile" ? "100%" : "75%";
 
+  // Móvil estrecho apila mapa y perfil como dos tarjetas separadas a todo
+  // el ancho, en vez del lado a lado 1/4-3/4 de tablet/desktop (a 1/4 de
+  // ancho el mapa se quedaba enano e ilegible). Se probó primero con el
+  // perfil superpuesto sobre el mapa, pero tapaba la etiqueta de la cima
+  // (cae en el tercio inferior del mapa) y forzar la tarjeta a la
+  // proporción del mapa para no dejar franjas dentro desperdiciaba ancho
+  // fuera de ella — dos problemas de raíz del propio patrón de superponer,
+  // no arreglables con parches. Apiladas sin solape, cada una a todo el
+  // ancho, evita los dos. Es un layout distinto (no solo un reparto de
+  // ancho), así que se decide en JS.
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const timelineRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress: timelineScroll } = useScroll({
     target: timelineRef,
@@ -207,7 +227,7 @@ export function RouteSection() {
               <h2 className="font-display text-4xl italic text-[var(--ink)] sm:text-5xl">
                 Cinco paradas, tres terrenos
               </h2>
-              <p className="mt-3 max-w-lg text-[15px] text-[var(--text-faint)]">
+              <p className="mt-3 hidden max-w-lg text-[15px] text-[var(--text-faint)] sm:block">
                 Trazado real de referencia, con bucle costero entre Somocuevas, las dunas y La
                 Picota.
               </p>
@@ -217,7 +237,7 @@ export function RouteSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.5 }}
-                className="mt-10 grid grid-cols-3 gap-4 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 font-mono"
+                className="mt-4 grid grid-cols-3 gap-3 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3 font-mono sm:mt-10 sm:gap-4 sm:px-5 sm:py-4"
               >
                 <div>
                   <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
@@ -242,37 +262,55 @@ export function RouteSection() {
               </motion.dl>
             </div>
 
-            <div className="route-columns">
-              <motion.div
-                className="route-map-col relative overflow-hidden"
-                animate={{ width: mapWidth, opacity: expanded === "profile" ? 0 : 1 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <ExpandToggle
-                  expanded={expanded === "map"}
-                  label="el mapa"
-                  onClick={() => setExpanded((e) => (e === "map" ? null : "map"))}
-                />
+            {/* key distinto en cada rama: sin él React reutiliza los mismos
+                nodos al cambiar de layout y los estilos inline que Framer
+                Motion escribe (width del 25%/75% de escritorio) se quedan
+                pegados en la rama móvil, que solo anima height — el perfil
+                acababa midiendo 768px dentro de una tarjeta de 437px. */}
+            {isMobile ? (
+              <div key="stage-mobile" className="route-stage-mobile">
                 <RouteMap hoveredIndex={hoveredIndex} drawProgress={drawProgress} />
-              </motion.div>
+                <div className="route-stage-mobile-profile">
+                  <ElevationProfile
+                    hoveredIndex={hoveredIndex}
+                    onHoverIndex={setHoveredIndex}
+                    drawProgress={drawProgress}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div key="stage-columns" className="route-columns">
+                <motion.div
+                  className="route-map-col relative overflow-hidden"
+                  animate={{ width: mapWidth, opacity: expanded === "profile" ? 0 : 1 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <ExpandToggle
+                    expanded={expanded === "map"}
+                    label="el mapa"
+                    onClick={() => setExpanded((e) => (e === "map" ? null : "map"))}
+                  />
+                  <RouteMap hoveredIndex={hoveredIndex} drawProgress={drawProgress} />
+                </motion.div>
 
-              <motion.div
-                className="route-profile-col relative overflow-hidden"
-                animate={{ width: profileWidth, opacity: expanded === "map" ? 0 : 1 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <ExpandToggle
-                  expanded={expanded === "profile"}
-                  label="el perfil"
-                  onClick={() => setExpanded((e) => (e === "profile" ? null : "profile"))}
-                />
-                <ElevationProfile
-                  hoveredIndex={hoveredIndex}
-                  onHoverIndex={setHoveredIndex}
-                  drawProgress={drawProgress}
-                />
-              </motion.div>
-            </div>
+                <motion.div
+                  className="route-profile-col relative overflow-hidden"
+                  animate={{ width: profileWidth, opacity: expanded === "map" ? 0 : 1 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <ExpandToggle
+                    expanded={expanded === "profile"}
+                    label="el perfil"
+                    onClick={() => setExpanded((e) => (e === "profile" ? null : "profile"))}
+                  />
+                  <ElevationProfile
+                    hoveredIndex={hoveredIndex}
+                    onHoverIndex={setHoveredIndex}
+                    drawProgress={drawProgress}
+                  />
+                </motion.div>
+              </div>
+            )}
           </div>
           <div style={{ height: PIN_SCROLL_PX }} aria-hidden="true" />
         </div>

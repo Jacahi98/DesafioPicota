@@ -122,12 +122,15 @@ body {
   height: calc(100svh - 96px);
   background: var(--paper);
 }
+.route-columns,
+.route-stage-mobile {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
 .route-columns {
   display: flex;
   flex-direction: row;
   gap: 1.25rem;
-  flex: 1 1 auto;
-  min-height: 220px;
 }
 .route-map-col {
   width: 25%;
@@ -147,6 +150,35 @@ body {
 }
 .route-profile-svg-wrap {
   aspect-ratio: auto;
+  height: 100%;
+  width: 100%;
+}
+
+/* Móvil estrecho: mapa y perfil como dos tarjetas separadas apiladas, cada
+   una a todo el ancho — no un perfil superpuesto sobre el mapa (tapaba la
+   etiqueta de la cima). El mapa ya no necesita ajustar su proporción ni
+   dejar franjas: su cámara (route-map.tsx) sigue el punto que se dibuja y
+   adopta en vivo la proporción real de la tarjeta, así que siempre la
+   llena entera sin recortar geografía ni desperdiciar ancho. El mapa se
+   lleva más presupuesto de alto (62/38) porque a su contenido (vertical)
+   le cuesta más encajar en una tarjeta ancha que al perfil (apaisado). */
+.route-stage-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.route-stage-mobile .route-map-svg-wrap {
+  flex: 0 0 62%;
+  min-height: 0;
+  width: 100%;
+}
+.route-stage-mobile-profile {
+  flex: 0 0 38%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.route-stage-mobile-profile .route-profile-svg-wrap {
   height: 100%;
   width: 100%;
 }
