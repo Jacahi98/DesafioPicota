@@ -1,18 +1,74 @@
 "use client";
 
-function toggleTheme() {
-  const root = document.documentElement;
-  const current =
-    root.getAttribute("data-theme") ??
-    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  const next = current === "dark" ? "light" : "dark";
-  root.setAttribute("data-theme", next);
+import { useRef } from "react";
+
+function applyTheme(next: "light" | "dark") {
+  document.documentElement.setAttribute("data-theme", next);
   localStorage.setItem("picota-theme", next);
 }
 
+// Círculo que se expande desde el propio botón, revelando el tema nuevo por
+// encima del viejo, con la View Transition API nativa. Las coordenadas del
+// clip-path van en PORCENTAJE del viewport, nunca en píxeles absolutos:
+// Chrome tiene un bug conocido por el que un clip-path en px sobre
+// ::view-transition-new(root) no se escala bien en pantallas con factor de
+// escala fraccionario (el caso típico de un Mac Retina) — el círculo
+// aparece desplazado hacia el centro y con el radio equivocado, que es
+// justo lo que se veía. En porcentaje del propio viewport no depende de
+// esa conversión y siempre cae en el sitio correcto (referencia:
+// magicui.design/docs/components/animated-theme-toggler).
+function useThemeToggle() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  function toggleTheme() {
+    const button = buttonRef.current;
+    if (!button) return;
+
+    const root = document.documentElement;
+    const current =
+      root.getAttribute("data-theme") ??
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = current === "dark" ? "light" : "dark";
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof document.startViewTransition !== "function" || reduceMotion) {
+      applyTheme(next);
+      return;
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const { top, left, width, height } = button.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+
+    const maxRadiusPx = Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y));
+    // circle()'s porcentaje de radio se resuelve contra hypot(vw,vh)/√2 de
+    // la caja de referencia — hay que deshacer esa fórmula para que el
+    // porcentaje elegido equivalga exactamente al radio en px que se quiere.
+    const radiusPct = (maxRadiusPx / (Math.hypot(vw, vh) / Math.SQRT2)) * 100;
+    const cx = `${(x / vw) * 100}%`;
+    const cy = `${(y / vh) * 100}%`;
+
+    const transition = document.startViewTransition(() => applyTheme(next));
+
+    transition.ready.then(() => {
+      root.animate(
+        { clipPath: [`circle(0% at ${cx} ${cy})`, `circle(${radiusPct}% at ${cx} ${cy})`] },
+        { duration: 900, easing: "ease-in-out", fill: "forwards", pseudoElement: "::view-transition-new(root)" }
+      );
+    });
+  }
+
+  return { buttonRef, toggleTheme };
+}
+
 export function ThemeToggle() {
+  const { buttonRef, toggleTheme } = useThemeToggle();
+
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={toggleTheme}
       aria-label="Cambiar entre modo claro y oscuro"

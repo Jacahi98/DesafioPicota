@@ -183,6 +183,15 @@ body {
   width: 100%;
 }
 
+/* Círculo del cambio de tema (theme-toggle.tsx): se desactiva el crossfade
+   por defecto de la view transition en ambas capas — el clip-path que
+   revela el tema nuevo lo anima directamente el JS del propio componente
+   (Web Animations API sobre ::view-transition-new(root)), no CSS. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

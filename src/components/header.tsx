@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SectionsMenu } from "@/components/sections-menu";
 
 export function Header() {
   return (
@@ -21,12 +22,7 @@ export function Header() {
         </a>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-          <a
-            href="#inscripcion"
-            className="whitespace-nowrap text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--sand-gold)]"
-          >
-            Inscripción
-          </a>
+          <SectionsMenu />
           <ThemeToggle />
         </div>
       </div>

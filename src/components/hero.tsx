@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { Eye, X } from "lucide-react";
 import { routeStats } from "@/data/route-track";
 
 // Líneas de nivel que sugieren las dunas de Liencres vistas desde arriba —
@@ -21,13 +22,15 @@ function DuneContours() {
       aria-hidden="true"
     >
       {lines.map((d, i) => (
-        <path
+        <motion.path
           key={i}
           d={d}
           fill="none"
           style={{ stroke: "var(--sand-gold)" }}
           strokeWidth="1"
           opacity={0.16 + i * 0.03}
+          animate={{ x: i % 2 === 0 ? [0, 18, 0] : [0, -18, 0] }}
+          transition={{ duration: 16 + i * 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }}
         />
       ))}
     </svg>
@@ -36,6 +39,7 @@ function DuneContours() {
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end start"],
@@ -61,7 +65,7 @@ export function Hero() {
 
       <motion.div
         style={{ opacity: contentOpacity, scale: contentScale, y: contentY }}
-        className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-28 sm:px-8 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-36"
+        className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-14 sm:px-8 sm:pt-16 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-20"
       >
         <div className="max-w-2xl">
           <motion.p
@@ -73,16 +77,33 @@ export function Hero() {
             Liencres · Parque Natural de las Dunas
           </motion.p>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.05 }}
-            className="font-display text-[13vw] italic leading-[0.95] text-[var(--ink)] sm:text-6xl lg:text-7xl"
-          >
-            Desafío
-            <br />
-            <span className="text-[var(--pine)]">Picota</span>
-          </motion.h1>
+          <div className="relative flex items-start gap-3">
+            <motion.h1
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+              onMouseEnter={() => setPhotoOpen(true)}
+              onMouseLeave={() => setPhotoOpen(false)}
+              className="font-display text-[13vw] italic leading-[0.95] text-[var(--ink)] sm:text-6xl lg:text-7xl"
+            >
+              Desafío
+              <br />
+              <span className="text-[var(--pine)]">Picota</span>
+            </motion.h1>
+
+            {/* En escritorio el hover sobre las letras del título ya revela
+                la foto; en móvil/tablet no hay hover real, así que el ojo
+                hace lo mismo con un tap — dos vías al mismo contenido. */}
+            <button
+              type="button"
+              onClick={() => setPhotoOpen((o) => !o)}
+              aria-expanded={photoOpen}
+              aria-label="Ver foto de La Picota"
+              className="mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-dim)] transition-colors hover:border-[var(--pine)] hover:text-[var(--pine)] lg:hidden"
+            >
+              <Eye size={16} />
+            </button>
+          </div>
 
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -131,6 +152,54 @@ export function Hero() {
           </div>
         </dl>
       </motion.div>
+
+      {/* position: fixed, no en flujo — con height:auto empujaba el resto
+          del hero hacia abajo, así que en cualquier ventana normal la foto
+          aparecía por debajo del pliegue y el hover no se veía sin hacer
+          scroll (justo lo que se reportó). Como overlay siempre queda a la
+          vista, sea cual sea el scroll o el alto de la ventana. */}
+      <AnimatePresence>
+        {photoOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="pointer-events-none fixed inset-0 z-30 bg-black/50"
+              aria-hidden="true"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+              className="pointer-events-none fixed inset-x-[10%] top-1/2 z-30 -translate-y-1/2"
+            >
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/foto-picota.jpg"
+                  alt="Vista desde La Picota hacia la ría de Mogro"
+                  className="h-[45vh] w-full object-cover shadow-[var(--shadow)] sm:h-[55vh]"
+                />
+                {/* Solo la X es interactiva (pointer-events-auto): el resto
+                    del overlay se queda pointer-events-none para que, en
+                    escritorio, mover el ratón hacia la foto no cuente como
+                    salir del título y la cierre sola antes de tiempo. */}
+                <button
+                  type="button"
+                  onClick={() => setPhotoOpen(false)}
+                  aria-label="Cerrar foto"
+                  className="pointer-events-auto absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
