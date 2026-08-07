@@ -11,7 +11,7 @@ type Waypoint = { place: string; terrain: string; icon: LucideIcon; text: string
 
 // El trazado en sí ocupa esta caja "ajustada" (ROUTE_VW x ROUTE_VH, con PAD
 // de margen) — es el sistema de coordenadas de siempre. Pero la imagen de
-// satélite real (route-satellite-wide.jpg) cubre un área geográfica bastante
+// satélite real (route-satellite-wide.webp) cubre un área geográfica bastante
 // mayor alrededor de esta caja (MARGIN_X/MARGIN_Y de margen extra), así que
 // hay imagen real que revelar cuando la ventana de cámara del plano general
 // necesita una proporción distinta a la de esta caja ajustada — si solo
@@ -44,7 +44,7 @@ function mercY(lat: number) {
 
 // La calibración mundo→viewBox (dónde cae cada lng/lat en el lienzo) es
 // FIJA, tomada UNA vez del trazado de trekking original que se usó para
-// encargar/recortar route-satellite-wide.jpg (commit 319862e) — NO se
+// encargar/recortar route-satellite-wide.webp (commit 319862e) — NO se
 // deriva del routeTrack actual. La imagen es un archivo estático: si esta
 // caja se recalculara a partir de cualquier trazado que se cargue después,
 // cambiar de trazado (como al actualizar la ruta de trekking) desplazaría
@@ -481,7 +481,7 @@ export function RouteMap({
           aria-label={ariaLabel}
         >
           <image
-            href="/route-satellite-wide.jpg"
+            href="/route-satellite-wide.webp"
             x="0"
             y="0"
             width={VW}
