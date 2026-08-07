@@ -6,19 +6,28 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--paper)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
-        <a href="#top" className="flex min-w-0 items-center gap-2 sm:gap-3">
+        {/* Wordmark con texto integrado (sustituye al emblema circular +
+            texto aparte que había antes): dos PNG recortados a su
+            contenido real, uno por tema, intercambiados con las mismas
+            clases icon-light/icon-dark que ya usa el theme-toggle — sin
+            CSS nuevo. */}
+        <a href="#top" className="flex min-w-0 shrink-0 items-center">
           <Image
-            src="/logo-badge.png"
-            alt=""
-            aria-hidden="true"
-            width={480}
-            height={480}
+            src="/logo-wordmark-light.png"
+            alt="Desafío Picota Trail Run"
+            width={790}
+            height={525}
             priority
-            className="h-8 w-8 shrink-0 sm:h-10 sm:w-10"
+            className="icon-light h-9 w-auto sm:h-11"
           />
-          <span className="truncate whitespace-nowrap font-display text-base italic leading-none text-[var(--ink)] sm:text-xl">
-            Desafío Picota
-          </span>
+          <Image
+            src="/logo-wordmark-dark.png"
+            alt="Desafío Picota Trail Run"
+            width={790}
+            height={525}
+            priority
+            className="icon-dark h-9 w-auto sm:h-11"
+          />
         </a>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">

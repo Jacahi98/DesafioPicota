@@ -31,7 +31,7 @@ type Props = {
   onHoverIndex: (index: number | null) => void;
   drawProgress: MotionValue<number>;
   // La cima de ambos recorridos (trekking y andarines) es la misma —
-  // La Picota — así que el valor por defecto sirve para los dos, pero se
+  // Monte Picota — así que el valor por defecto sirve para los dos, pero se
   // deja como prop por si algún día hay un trazado que no la toque.
   summitLabel?: string;
 };
@@ -42,7 +42,7 @@ export function ElevationProfile({
   hoveredIndex,
   onHoverIndex,
   drawProgress,
-  summitLabel = "La Picota",
+  summitLabel = "Monte Picota",
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const { distanceM, minEle: eleMin, maxEle: eleMax } = stats;
@@ -197,8 +197,8 @@ export function ElevationProfile({
       >
         <defs>
           <linearGradient id="elevation-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" style={{ stopColor: "var(--sand-gold)" }} stopOpacity="0.35" />
-            <stop offset="100%" style={{ stopColor: "var(--sand-gold)" }} stopOpacity="0" />
+            <stop offset="0%" style={{ stopColor: "var(--accent-rose)" }} stopOpacity="0.35" />
+            <stop offset="100%" style={{ stopColor: "var(--accent-rose)" }} stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -230,7 +230,7 @@ export function ElevationProfile({
         />
 
         <g ref={summitRef} style={{ opacity: 0 }}>
-          <circle cx={summitX} cy={summitY} r="4" style={{ fill: "var(--sand-gold)" }} />
+          <circle cx={summitX} cy={summitY} r="4" style={{ fill: "var(--accent-rose)" }} />
           <text
             x={summitX}
             y={summitY - 10}
@@ -271,7 +271,7 @@ export function ElevationProfile({
               cx={hovered[0]}
               cy={hovered[1]}
               r="5"
-              style={{ fill: "var(--sand-gold)", stroke: "var(--paper)" }}
+              style={{ fill: "var(--accent-rose)", stroke: "var(--paper)" }}
               strokeWidth="2"
             />
             <g transform={`translate(${Math.min(Math.max(hovered[0], 60), vw - 60)}, ${PAD_TOP - 12})`}>

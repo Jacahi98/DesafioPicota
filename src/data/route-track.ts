@@ -1,3 +1,5 @@
+import { Waves, TreePine, Mountain, Trees } from "lucide-react";
+
 // Trazado real de la ruta de referencia (Wikiloc: DESAFIO PICOTA, Ana y
 // Charlos, https://www.wikiloc.com/hiking-trails/desafio-picota-278233000).
 // Cada punto: [longitud, latitud, altitud en m, distancia acumulada en m].
@@ -120,104 +122,138 @@ export const routeTrack: [number, number, number, number][] = [
 
 export const routeStats = {
   distanceM: 13055,
-  gainM: 523,
-  lossM: 523,
+  // gainM/lossM: NO es la suma bruta de subidas/bajadas punto a punto del
+  // GPX (eso da ~523 m con suavizado moderado, más si no se suaviza nada) —
+  // es la cifra que la propia ficha de Wikiloc muestra para esta ruta
+  // ("Elevation+ 372 m"), que usa su propio algoritmo de corrección de
+  // ruido. Se prioriza coincidir con el dato "oficial" publicado antes que
+  // con un cálculo casero que sistemáticamente da más alto (visto también
+  // en Andarines: ~311 m calculado vs 252 m publicado).
+  gainM: 372,
+  lossM: 372,
   minEle: 6,
   maxEle: 233,
 };
 
-// Trazado de la modalidad Andarines (Wikiloc: Liencres - Monte Tolío - Monte
-// La Picota - Liencres), un bucle mucho más corto que toca los mismos dos
-// altos que la carrera trail. Mismo formato que routeTrack.
+// Trazado de la modalidad Andarines (Wikiloc: DESAFIO PICOTA ANDARINES, Ana
+// y Charlos, https://www.wikiloc.com/hiking-trails/desafio-picota-andarines-278246304).
+// Mismo formato que routeTrack. Re-muestreado de 504 puntos GPS originales
+// a 60, con el mismo forzado del pico exacto que routeTrack.
 export const andarinesTrack: [number, number, number, number][] = [
-  [-3.9408, 43.453, 83, 0],
-  [-3.9401, 43.4533, 86, 86],
-  [-3.9397, 43.4533, 92, 161],
-  [-3.9393, 43.4527, 112, 243],
-  [-3.9392, 43.4521, 133, 322],
-  [-3.9397, 43.4515, 135, 403],
-  [-3.9395, 43.4511, 195, 483],
-  [-3.9399, 43.4504, 225, 564],
-  [-3.9403, 43.4498, 228, 641],
-  [-3.9408, 43.4492, 226, 722],
-  [-3.9412, 43.4486, 225, 805],
-  [-3.9415, 43.448, 236, 883],
-  [-3.9419, 43.4473, 237, 964],
-  [-3.9416, 43.4469, 235, 1045],
-  [-3.9416, 43.4465, 218, 1123],
-  [-3.9425, 43.4464, 211, 1202],
-  [-3.943, 43.4458, 198, 1285],
-  [-3.9433, 43.4452, 193, 1360],
-  [-3.9436, 43.4445, 193, 1445],
-  [-3.944, 43.444, 207, 1521],
-  [-3.9435, 43.4435, 201, 1600],
-  [-3.9437, 43.4429, 186, 1683],
-  [-3.9441, 43.4423, 185, 1763],
-  [-3.9448, 43.4418, 190, 1843],
-  [-3.9453, 43.4412, 220, 1923],
-  [-3.9449, 43.4407, 227, 2003],
-  [-3.9446, 43.4401, 241, 2085],
-  [-3.9446, 43.4399, 244, 2165],
-  [-3.9448, 43.4405, 234, 2240],
-  [-3.9454, 43.4411, 240, 2321],
-  [-3.945, 43.4416, 223, 2402],
-  [-3.9444, 43.4422, 197, 2480],
-  [-3.9439, 43.4427, 189, 2560],
-  [-3.9435, 43.4434, 190, 2645],
-  [-3.9439, 43.4438, 203, 2724],
-  [-3.9437, 43.4444, 203, 2805],
-  [-3.9433, 43.445, 187, 2883],
-  [-3.943, 43.4456, 196, 2963],
-  [-3.9432, 43.4462, 195, 3043],
-  [-3.9436, 43.4469, 179, 3125],
-  [-3.9435, 43.4476, 168, 3204],
-  [-3.9433, 43.4483, 161, 3285],
-  [-3.9429, 43.4489, 144, 3364],
-  [-3.9426, 43.4495, 143, 3441],
-  [-3.9421, 43.4501, 139, 3525],
-  [-3.9418, 43.4507, 140, 3602],
-  [-3.9417, 43.4514, 129, 3682],
-  [-3.9418, 43.4521, 115, 3765],
-  [-3.9412, 43.4526, 120, 3844],
-  [-3.9407, 43.453, 120, 3900],
+  [-3.9281, 43.4609, 68, 0],
+  [-3.9285, 43.4603, 71, 120],
+  [-3.93, 43.4599, 66, 239],
+  [-3.9318, 43.4597, 60, 359],
+  [-3.9331, 43.4594, 60, 478],
+  [-3.9341, 43.459, 57, 598],
+  [-3.9352, 43.4582, 58, 718],
+  [-3.9366, 43.458, 65, 837],
+  [-3.9376, 43.4574, 68, 957],
+  [-3.9383, 43.4568, 69, 1076],
+  [-3.9374, 43.4559, 76, 1196],
+  [-3.9367, 43.4548, 83, 1315],
+  [-3.9374, 43.4542, 90, 1435],
+  [-3.939, 43.4538, 90, 1555],
+  [-3.9398, 43.4534, 90, 1674],
+  [-3.9414, 43.4525, 102, 1794],
+  [-3.9417, 43.4516, 117, 1913],
+  [-3.9417, 43.4508, 132, 2033],
+  [-3.9423, 43.4499, 142, 2153],
+  [-3.9428, 43.449, 145, 2272],
+  [-3.9434, 43.448, 159, 2392],
+  [-3.9435, 43.447, 174, 2511],
+  [-3.9428, 43.4462, 190, 2631],
+  [-3.9433, 43.4452, 186, 2750],
+  [-3.9439, 43.4442, 200, 2870],
+  [-3.9434, 43.4435, 191, 2990],
+  [-3.944, 43.4426, 181, 3109],
+  [-3.9449, 43.4416, 208, 3229],
+  [-3.9451, 43.4408, 231, 3348],
+  [-3.9446, 43.44, 233, 3468],
+  [-3.9444, 43.4404, 220, 3588],
+  [-3.9429, 43.4405, 203, 3707],
+  [-3.9418, 43.4403, 185, 3827],
+  [-3.9419, 43.4414, 161, 3946],
+  [-3.9418, 43.4424, 148, 4066],
+  [-3.9424, 43.4433, 154, 4185],
+  [-3.9422, 43.4443, 161, 4305],
+  [-3.9422, 43.4452, 176, 4425],
+  [-3.9421, 43.4462, 192, 4544],
+  [-3.9416, 43.4465, 210, 4664],
+  [-3.9419, 43.4472, 231, 4783],
+  [-3.9414, 43.4482, 229, 4903],
+  [-3.9408, 43.4493, 216, 5023],
+  [-3.94, 43.4504, 216, 5142],
+  [-3.9395, 43.4511, 216, 5262],
+  [-3.9384, 43.4516, 193, 5381],
+  [-3.9372, 43.4521, 177, 5501],
+  [-3.9358, 43.4524, 159, 5621],
+  [-3.9348, 43.453, 147, 5740],
+  [-3.9343, 43.4539, 154, 5860],
+  [-3.9333, 43.4545, 152, 5979],
+  [-3.9323, 43.4552, 140, 6099],
+  [-3.9314, 43.456, 130, 6218],
+  [-3.9321, 43.4566, 91, 6338],
+  [-3.9317, 43.4575, 81, 6458],
+  [-3.9313, 43.458, 78, 6577],
+  [-3.9299, 43.4588, 74, 6697],
+  [-3.9292, 43.4593, 74, 6816],
+  [-3.9284, 43.4602, 72, 6936],
+  [-3.9282, 43.4609, 68, 7056],
 ];
 
 export const andarinesStats = {
-  distanceM: 3900,
-  gainM: 324,
-  lossM: 287,
-  minEle: 83,
-  maxEle: 244,
+  distanceM: 7056,
+  // Mismo criterio que routeStats.gainM: cifra "Elevation+" publicada por
+  // Wikiloc para esta ruta, no la suma bruta calculada del GPX (~311 m).
+  gainM: 252,
+  lossM: 252,
+  minEle: 54,
+  // La cima es la MISMA que la de routeStats (La Picota) — se usa el mismo
+  // valor (233) en las dos modalidades aunque las dos lecturas GPS
+  // independientes dieran 232.7 y 235.1: no tiene sentido mostrar dos
+  // "cotas máximas" distintas para el mismo punto físico. El punto del
+  // trazado que marca la cima (más abajo) lleva la misma altitud, para que
+  // el perfil no la dibuje por encima de este eje.
+  maxEle: 233,
 };
 
-// Las cinco paradas del recorrido, repartidas a partes iguales sobre
-// drawProgress (0, 0.25, 0.5, 0.75, 1) — la misma aproximación que ya usaba
-// el timeline de abajo del mapa/perfil, ahora también la fuente para la
-// tarjeta de info que se actualiza sola encima del mapa según el scroll.
+// Las cuatro paradas del recorrido — NO repartidas a partes iguales, sino
+// en el km real donde empieza cada tramo (confirmado directamente): Costa
+// Quebrada hasta el km 4, Pinares de Liencres hasta el 6.8, Monte Picota
+// hasta el 10, Monte Tolío el resto. startFraction es ese km real dividido
+// por la distancia total — RouteMap (WaypointCard) lo usa para decidir qué
+// parada mostrar según drawProgress en vez de dividir el recorrido en
+// tramos iguales. El timeline de abajo (WaypointItem) sigue reparted a
+// partes iguales a propósito: mide progreso de LECTURA de la lista, no de
+// avance real sobre el trazado, así que no debe usar estos mismos km.
 export const waypoints = [
   {
-    place: "Playa de Somocuevas",
-    terrain: "Arena",
-    text: "Salida a pie de playa. Los primeros metros se corren sobre arena compacta, con la marea marcando el ritmo.",
+    place: "Costa Quebrada",
+    terrain: "Roca y oleaje",
+    icon: Waves,
+    text: "Estratos de roca retorcidos por el tiempo, tallados por el oleaje en calas, bufones y arcos de piedra. Los primeros kilómetros bordean el geoparque que da nombre a esta costa, con el Cantábrico cerca.",
+    startFraction: 0,
   },
   {
-    place: "Dunas de Liencres",
-    terrain: "Arena suelta",
-    text: "El parque natural más antiguo protegido de Cantabria. Aquí la arena deja de ser firme: cada zancada cuesta un poco más.",
-  },
-  {
-    place: "El Pinar",
+    place: "Pinares de Liencres",
     terrain: "Bosque",
+    icon: TreePine,
     text: "Pino marítimo y sombra durante casi tres kilómetros. El terreno se endurece y el camino empieza a subir en serio.",
+    startFraction: 4000 / routeStats.distanceM,
   },
   {
-    place: "La Picota",
+    place: "Monte Picota",
     terrain: "Roca y viento",
-    text: "232 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
+    icon: Mountain,
+    text: "233 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
+    startFraction: 6800 / routeStats.distanceM,
   },
   {
-    place: "Tolio",
-    terrain: "Acantilado",
-    text: "El tramo más expuesto: sendero de acantilado de vuelta hacia Liencres, con el Cantábrico a un lado todo el descenso.",
+    place: "Monte Tolío",
+    terrain: "Prado y bosque",
+    icon: Trees,
+    text: "Un segundo alto, más bajo que Picota, entre prados y bosque, con el curso de la ría cerca. El descenso final vuelve hacia el interior hasta terminar el recorrido.",
+    startFraction: 10000 / routeStats.distanceM,
   },
 ];

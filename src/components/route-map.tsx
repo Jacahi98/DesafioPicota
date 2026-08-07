@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import { routeTrack as calibrationTrack } from "@/data/route-track";
+import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Disclosure, DisclosureTrigger, DisclosureContent } from "@/components/core/disclosure";
 
 type TrackPoint = readonly [number, number, number, number];
-type Waypoint = { place: string; terrain: string; text: string };
+type Waypoint = { place: string; terrain: string; icon: LucideIcon; text: string; startFraction: number };
 
 // El trazado en sí ocupa esta caja "ajustada" (ROUTE_VW x ROUTE_VH, con PAD
 // de margen) — es el sistema de coordenadas de siempre. Pero la imagen de
@@ -42,18 +41,25 @@ function mercY(lat: number) {
   return MERC_R * Math.log(Math.tan(Math.PI / 4 + rad / 2));
 }
 
-// La calibración mundo→viewBox (dónde cae cada lng/lat en el lienzo) está
-// fijada UNA sola vez, a partir del trazado de la carrera trail — no de
-// cada trazado que se dibuje. Así, tanto este recorrido como el de Andarines
-// (que comparten zona real y hasta cima, La Picota) se proyectan sobre la
-// MISMA imagen de satélite en la posición geográfica correcta uno respecto
-// al otro, en vez de que cada uno "encoja para caber" a su propia escala.
-const mercXs = calibrationTrack.map((p) => mercX(p[0]));
-const mercYs = calibrationTrack.map((p) => mercY(p[1]));
-const mercXMin = Math.min(...mercXs);
-const mercXMax = Math.max(...mercXs);
-const mercYMin = Math.min(...mercYs);
-const mercYMax = Math.max(...mercYs);
+// La calibración mundo→viewBox (dónde cae cada lng/lat en el lienzo) es
+// FIJA, tomada UNA vez del trazado de trekking original que se usó para
+// encargar/recortar route-satellite-wide.jpg (commit 319862e) — NO se
+// deriva del routeTrack actual. La imagen es un archivo estático: si esta
+// caja se recalculara a partir de cualquier trazado que se cargue después,
+// cambiar de trazado (como al actualizar la ruta de trekking) desplazaría
+// la cuadrícula lng/lat respecto a la imagen ya fija por debajo, sin volver
+// a generarla — exactamente el bug que esto evita (el trazado se salía
+// hacia el mar tras cambiar de trazado). Trekking y Andarines comparten
+// esta MISMA caja fija, así que ambos caen en su posición geográfica
+// correcta uno respecto al otro sobre la misma imagen.
+const CALIBRATION_MERC_X_MIN = -441114.6142174258;
+const CALIBRATION_MERC_X_MAX = -437185.03619242326;
+const CALIBRATION_MERC_Y_MIN = 5378680.032683926;
+const CALIBRATION_MERC_Y_MAX = 5383617.743608577;
+const mercXMin = CALIBRATION_MERC_X_MIN;
+const mercXMax = CALIBRATION_MERC_X_MAX;
+const mercYMin = CALIBRATION_MERC_Y_MIN;
+const mercYMax = CALIBRATION_MERC_Y_MAX;
 
 // Math.log/Math.tan no están garantizados bit a bit idénticos entre motores
 // JS (a diferencia de +,-,*,/, que sí lo están) — sin este redondeo, el
@@ -136,7 +142,15 @@ function WaypointCard({
 
   useEffect(() => {
     const unsubscribe = drawProgress.on("change", (v) => {
-      const idx = Math.min(waypoints.length - 1, Math.max(0, Math.round(v * (waypoints.length - 1))));
+      // Última parada cuyo startFraction (km real / distancia total) ya se
+      // ha alcanzado — no un reparto a partes iguales del recorrido.
+      let idx = 0;
+      for (let i = waypoints.length - 1; i >= 0; i--) {
+        if (v >= waypoints[i].startFraction) {
+          idx = i;
+          break;
+        }
+      }
       setActiveIndex((prev) => (prev === idx ? prev : idx));
     });
     return unsubscribe;
@@ -153,17 +167,42 @@ function WaypointCard({
       className="absolute inset-x-0 bottom-0 rounded-b-sm bg-[#0a1108]/80 backdrop-blur-sm"
     >
       <DisclosureTrigger>
-        <button type="button" className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left">
-          <span className="min-w-0 truncate text-xs font-semibold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
-            {wp.place}
-            <span className="ml-2 font-mono text-[10px] font-normal uppercase tracking-wider text-[var(--sand-gold)]">
-              {wp.terrain}
+        {/* El icono va en su PROPIA fila, debajo del título — no metido en
+            el mismo span de texto que envuelve. Ahí (inline con el texto)
+            era un elemento flex "blockified" que se encoge al ancho del
+            propio texto (min-w-0 permite encogerlo por debajo de su
+            contenido); si el nombre + icono no cabían en una línea, el
+            icono cae a una caja mucho más estrecha que la tarjeta entera,
+            así que no queda alineado ni con el texto ni con nada — parece
+            flotando/centrado. En su propia fila, con el ancho completo del
+            botón, siempre alinea a la izquierda pase lo que pase con el
+            nombre. */}
+        <button type="button" className="flex w-full flex-col gap-1 px-3 py-2 text-left">
+          <span className="flex w-full items-start justify-between gap-2">
+            <span className="min-w-0 text-xs font-semibold leading-snug text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+              {wp.place}
             </span>
+            <ChevronDown
+              size={14}
+              className={`mt-0.5 shrink-0 text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
+            />
           </span>
-          <ChevronDown size={14} className={`shrink-0 text-white/70 transition-transform ${open ? "rotate-180" : ""}`} />
+          {/* Icono en vez de la palabra del terreno — el texto sigue
+              disponible (title al pasar el cursor, sr-only para lector de
+              pantalla), solo deja de pintarse visualmente. */}
+          <span className="inline-flex items-center text-[var(--accent-rose)]" title={wp.terrain}>
+            <wp.icon size={13} aria-hidden="true" />
+            <span className="sr-only">{wp.terrain}</span>
+          </span>
         </button>
       </DisclosureTrigger>
-      <DisclosureContent>
+      {/* max-h + overflow-y-auto: sin tope, "height: auto" del propio
+          Disclosure podía crecer más que la tarjeta del mapa (overflow-
+          hidden), y esta caja al desplegarse (position absolute, bottom-0,
+          creciendo hacia arriba) se recortaba por arriba — tapando parte
+          del propio título. Con tope, como mucho aparece scroll interno,
+          nunca se sale de la tarjeta. */}
+      <DisclosureContent className="max-h-32 overflow-y-auto">
         <p className="px-3 pb-3 text-[11px] leading-relaxed text-white/80">{wp.text}</p>
       </DisclosureContent>
     </Disclosure>
@@ -176,14 +215,14 @@ export function RouteMap({
   hoveredIndex,
   drawProgress,
   waypoints,
-  summitLabel = "La Picota",
+  summitLabel = "Monte Picota",
   ariaLabel,
 }: {
   track: TrackPoint[];
   maxEle: number;
   hoveredIndex: number | null;
   drawProgress: MotionValue<number>;
-  // Opcional: solo el trekking (la carrera de referencia) tiene las cinco
+  // Opcional: solo el trekking (la carrera de referencia) tiene las cuatro
   // paradas narradas; Andarines no lleva tarjeta de parada.
   waypoints?: Waypoint[];
   summitLabel?: string;
@@ -460,7 +499,7 @@ export function RouteMap({
           d={pathD}
           fill="none"
           style={{
-            stroke: "var(--sand-gold)",
+            stroke: "var(--accent-rose)",
             strokeDasharray: pathTotalLength,
             strokeDashoffset: dashOffset,
           }}
@@ -492,7 +531,7 @@ export function RouteMap({
             cx={summitX}
             cy={summitY}
             r="5"
-            style={{ fill: "var(--sand-gold)" }}
+            style={{ fill: "var(--accent-rose)" }}
             stroke="#0a1108"
             strokeWidth="1.5"
           />
@@ -512,7 +551,7 @@ export function RouteMap({
 
         {hovered && (
           <g>
-            <circle cx={hovered[0]} cy={hovered[1]} r="9" style={{ fill: "var(--sand-gold)" }} opacity="0.35" />
+            <circle cx={hovered[0]} cy={hovered[1]} r="9" style={{ fill: "var(--accent-rose)" }} opacity="0.35" />
             <circle cx={hovered[0]} cy={hovered[1]} r="5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
           </g>
         )}

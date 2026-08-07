@@ -62,7 +62,7 @@ export function SectionsMenu() {
         whileTap={{ scale: 0.95 }}
         className="relative whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-2 text-sm font-semibold text-[var(--pine)] sm:py-2.5"
       >
-        <BorderTrail size={18} style={{ backgroundColor: "var(--sand-gold)", opacity: 0.85 }} />
+        <BorderTrail size={18} style={{ backgroundColor: "var(--accent-rose)", opacity: 0.85 }} />
         Secciones
       </motion.button>
 

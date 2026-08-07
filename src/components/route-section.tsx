@@ -10,7 +10,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { ChevronsLeftRight } from "lucide-react";
+import { ChevronsLeftRight, type LucideIcon } from "lucide-react";
 import { RouteMap } from "@/components/route-map";
 import { ElevationProfile } from "@/components/elevation-profile";
 import {
@@ -181,7 +181,7 @@ function RouteStage({
   isMobile: boolean;
   track: TrackPoint[];
   stats: TrackStats;
-  waypoints?: { place: string; terrain: string; text: string }[];
+  waypoints?: { place: string; terrain: string; icon: LucideIcon; text: string; startFraction: number }[];
   summitLabel?: string;
   ariaLabel: string;
   drawProgress: MotionValue<number>;
@@ -351,7 +351,7 @@ function WaypointItem({
       />
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h3 className="font-display text-2xl text-[var(--ink)]">{wp.place}</h3>
-        <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--sand-gold)]">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent-rose)]">
           {wp.terrain}
         </span>
       </div>
@@ -490,12 +490,8 @@ export function RouteSection() {
                 El recorrido
               </p>
               <h2 className="font-display text-4xl italic text-[var(--ink)] sm:text-5xl">
-                Cinco paradas, tres terrenos
+                Cuatro paradas
               </h2>
-              <p className="mt-3 hidden max-w-lg text-[15px] text-[var(--text-faint)] sm:block">
-                Trazado real de referencia, con bucle costero entre Somocuevas, las dunas y La
-                Picota.
-              </p>
 
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -559,7 +555,7 @@ export function RouteSection() {
             <ComparisonSlider
               ref={sliderRef}
               className="route-stage-compare"
-              defaultPosition={50}
+              defaultPosition={0}
               onPositionChange={(pct) => setActiveModality(pct > 50 ? "andarines" : "trekking")}
               onCommit={handleModalityCommit}
             >
@@ -570,7 +566,7 @@ export function RouteSection() {
                   track={routeTrack}
                   stats={routeStats}
                   waypoints={waypoints}
-                  ariaLabel="Mapa por satélite de la modalidad Trekking: bucle costero entre Somocuevas, las dunas de Liencres, el pinar y La Picota"
+                  ariaLabel="Mapa por satélite de la modalidad Trekking: bucle entre Costa Quebrada, los pinares de Liencres, Monte Picota y Monte Tolío"
                   drawProgress={drawProgress}
                   hoveredIndex={hoveredTrekking}
                   onHoverIndex={setHoveredTrekking}
@@ -582,15 +578,21 @@ export function RouteSection() {
                   isMobile={isMobile}
                   track={andarinesTrack}
                   stats={andarinesStats}
-                  ariaLabel="Mapa por satélite de la modalidad Andarines: bucle corto entre Monte Tolío y La Picota"
+                  ariaLabel="Mapa por satélite de la modalidad Andarines: bucle corto entre Monte Tolío y Monte Picota"
                   drawProgress={drawProgress}
                   hoveredIndex={hoveredAndarines}
                   onHoverIndex={setHoveredAndarines}
                 />
               </ComparisonPanel>
-              <ComparisonHandle className="group flex w-[3px] items-center justify-center bg-[var(--sand-gold)] shadow-[0_0_0_1px_rgba(0,0,0,0.25)]">
-                <div className="flex h-8 w-8 shrink-0 scale-100 items-center justify-center rounded-full border-2 border-[var(--sand-gold)] bg-[var(--paper)] text-[var(--pine)] shadow-[var(--shadow)] transition-transform duration-200 ease-out group-hover:scale-125 group-active:scale-150">
-                  <ChevronsLeftRight size={16} className="shrink-0" />
+              {/* Semitransparente en reposo (opacity-50) y opaco solo al
+                  pasar el cursor/tocar — el tirador siempre está ENCIMA
+                  del mapa/perfil (bottom-0 top-0), así que en algún punto
+                  del recorrido tapa alguna etiqueta debajo; hacerlo
+                  translúcido deja leerse a través en vez de perseguir cada
+                  posición concreta donde estorba. */}
+              <ComparisonHandle className="group flex w-[3px] items-center justify-center bg-[var(--accent-rose)] opacity-50 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] transition-opacity duration-200 hover:opacity-100">
+                <div className="flex h-7 w-7 shrink-0 scale-100 items-center justify-center rounded-full border-2 border-[var(--accent-rose)] bg-[var(--paper)] text-[var(--pine)] shadow-[var(--shadow)] transition-transform duration-200 ease-out group-hover:scale-125 group-active:scale-150">
+                  <ChevronsLeftRight size={14} className="shrink-0" />
                 </div>
               </ComparisonHandle>
             </ComparisonSlider>

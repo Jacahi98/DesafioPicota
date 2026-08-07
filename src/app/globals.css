@@ -1,7 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Paleta extraída del logotipo (parche de trail run): crema, granate y teal. */
+  /* Paleta extraída DIRECTAMENTE del wordmark nuevo (logo-wordmark-light/
+     dark.png): granate #621719, rosa empolvado #d16d71 y teal #4c8387 son
+     los tres colores reales del logo, muestreados de los propios PNG. El
+     rosa y el teal se oscurecen aquí para tema claro (y se aclaran para
+     oscuro) lo justo para mantener contraste de texto legible — el logo
+     los usa a tamaño grande, donde ese contraste no hace falta, pero estos
+     tokens también pintan texto pequeño (etiquetas, enlaces). */
   --paper: #f4ddb8;
   --paper-raised: #faecd4;
   --paper-sunken: #ecca9a;
@@ -10,10 +16,10 @@
   --text-dim: #7a3624;
   --text-faint: #96755c;
 
-  --pine: #7a1a1a;
+  --pine: #621719;
   --pine-ink: #f4ddb8;
-  --sea: #005a64;
-  --sand-gold: #a84c00;
+  --sea: #355c5e;
+  --accent-rose: #a9353a;
 
   --shadow: 0 1px 2px rgba(74, 16, 16, 0.08), 0 12px 32px rgba(74, 16, 16, 0.1);
   --radius: 4px;
@@ -30,10 +36,10 @@
     --text-dim: #d9b89a;
     --text-faint: #b08f72;
 
-    --pine: #f08868;
+    --pine: #ef484d;
     --pine-ink: #1c0f0c;
-    --sea: #5fd0da;
-    --sand-gold: #ffb15c;
+    --sea: #57979b;
+    --accent-rose: #d16d71;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
@@ -49,10 +55,10 @@
   --text-dim: #d9b89a;
   --text-faint: #b08f72;
 
-  --pine: #f08868;
+  --pine: #ef484d;
   --pine-ink: #1c0f0c;
-  --sea: #5fd0da;
-  --sand-gold: #ffb15c;
+  --sea: #57979b;
+  --accent-rose: #d16d71;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
   color-scheme: dark;

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { APP_VERSION } from "@/lib/version";
 import { InfiniteSlider } from "@/components/core/infinite-slider";
 
@@ -37,7 +38,20 @@ export function Footer() {
 
       <div className="mx-auto max-w-6xl px-6 sm:px-8">
         <div className="flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display italic text-[var(--ink)]">Desafío Picota</p>
+          <Image
+            src="/logo-wordmark-light.png"
+            alt="Desafío Picota Trail Run"
+            width={790}
+            height={525}
+            className="icon-light h-8 w-auto"
+          />
+          <Image
+            src="/logo-wordmark-dark.png"
+            alt="Desafío Picota Trail Run"
+            width={790}
+            height={525}
+            className="icon-dark h-8 w-auto"
+          />
           <p className="text-sm text-[var(--text-faint)]">Liencres, Cantabria</p>
         </div>
         <p className="mt-6 font-mono text-[10px] text-[var(--text-faint)] opacity-60">v{APP_VERSION}</p>

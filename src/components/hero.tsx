@@ -26,7 +26,7 @@ function DuneContours() {
           key={i}
           d={d}
           fill="none"
-          style={{ stroke: "var(--sand-gold)" }}
+          style={{ stroke: "var(--accent-rose)" }}
           strokeWidth="1"
           opacity={0.16 + i * 0.03}
           animate={{ x: i % 2 === 0 ? [0, 18, 0] : [0, -18, 0] }}
@@ -98,7 +98,7 @@ export function Hero() {
               type="button"
               onClick={() => setPhotoOpen((o) => !o)}
               aria-expanded={photoOpen}
-              aria-label="Ver foto de La Picota"
+              aria-label="Ver foto de Monte Picota"
               className="mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-dim)] transition-colors hover:border-[var(--pine)] hover:text-[var(--pine)] lg:hidden"
             >
               <Eye size={16} />
@@ -111,9 +111,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="mt-7 max-w-lg text-[17px] leading-relaxed text-[var(--text-dim)]"
           >
-            Un trail que cambia de terreno tres veces: arena suelta en las dunas, sombra
-            de pinar y roca de acantilado hasta el mirador de La Picota, con la ría de
-            Mogro abriéndose debajo.
+            Un trail costero por Cantabria, entre acantilados y pinares, hasta el mirador
+            de Monte Picota, con la ría de Mogro abriéndose debajo.
           </motion.p>
 
           <motion.div
@@ -130,7 +129,7 @@ export function Hero() {
             </span>
             <a
               href="#recorrido"
-              className="text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--sand-gold)]"
+              className="text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--accent-rose)]"
             >
               Ver el recorrido ↓
             </a>
@@ -182,7 +181,7 @@ export function Hero() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/foto-picota.jpg"
-                  alt="Vista desde La Picota hacia la ría de Mogro"
+                  alt="Vista desde Monte Picota hacia la ría de Mogro"
                   className="h-[45vh] w-full object-cover shadow-[var(--shadow)] sm:h-[55vh]"
                 />
                 {/* Solo la X es interactiva (pointer-events-auto): el resto
