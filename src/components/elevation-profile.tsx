@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
-import { routeTrack, routeStats } from "@/data/route-track";
+
+type TrackPoint = readonly [number, number, number, number];
 
 // Más alto que un perfil de desnivel "clásico" a propósito: al no ser
 // geografía real (es un gráfico estilizado), ganar relieve vertical aquí no
@@ -19,56 +20,37 @@ const DEFAULT_VW = 800;
 // Nunca más estrecho que esto, aunque la tarjeta salga rarísima de ancha.
 const MIN_VW = 500;
 
-const eleMin = routeStats.minEle;
-const eleMax = routeStats.maxEle;
-
-function y(ele: number) {
-  return PAD_TOP + (1 - (ele - eleMin) / (eleMax - eleMin)) * PLOT_H;
-}
-
-const summitIndex = routeTrack.reduce(
-  (best, p, i) => (p[2] > routeTrack[best][2] ? i : best),
-  0
-);
-
 function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
 }
 
-// Fracción de DISTANCIA REAL recorrida (dato GPS, routeTrack[i][3] en
-// metros) en cada punto — el parámetro de avance de verdad que representa
-// drawProgress. La curva de elevación, al subir y bajar, tiene una
-// longitud EN PÍXELES muy distinta de la distancia real (una subida
-// empinada como La Picota "gasta" mucha más longitud de trazo por metro
-// real que un tramo llano) — traducir drawProgress directo a esa longitud
-// en píxeles (lineTotalLength*(1-v)) hacía que el perfil avanzara más
-// rápido de lo real en los tramos llanos y más despacio en los empinados,
-// desincronizándose del mapa (que si va por distancia real) — justo lo que
-// se veía al hacer hover: el punto marcado no coincidía con el del mapa.
-// Todo se ancla a esta fracción real en su lugar, igual que en route-map.tsx.
-const distFractions = routeTrack.map((p) => p[3] / routeStats.distanceM);
-const summitFraction = distFractions[summitIndex];
-
-// Dado drawProgress (fracción de distancia real 0–1), encuentra el tramo
-// GPS en el que cae y la fracción dentro de ese tramo.
-function bracketAtFraction(frac: number) {
-  const v = clamp(frac, 0, 1);
-  let i = 1;
-  while (i < distFractions.length - 1 && distFractions[i] < v) i++;
-  const segStart = distFractions[i - 1];
-  const segEnd = distFractions[i];
-  const segFrac = segEnd > segStart ? (v - segStart) / (segEnd - segStart) : 0;
-  return { i, segFrac };
-}
-
 type Props = {
+  track: TrackPoint[];
+  stats: { distanceM: number; minEle: number; maxEle: number };
   hoveredIndex: number | null;
   onHoverIndex: (index: number | null) => void;
   drawProgress: MotionValue<number>;
+  // La cima de ambos recorridos (trekking y andarines) es la misma —
+  // La Picota — así que el valor por defecto sirve para los dos, pero se
+  // deja como prop por si algún día hay un trazado que no la toque.
+  summitLabel?: string;
 };
 
-export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: Props) {
+export function ElevationProfile({
+  track,
+  stats,
+  hoveredIndex,
+  onHoverIndex,
+  drawProgress,
+  summitLabel = "La Picota",
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const { distanceM, minEle: eleMin, maxEle: eleMax } = stats;
+
+  function y(ele: number) {
+    return PAD_TOP + (1 - (ele - eleMin) / (eleMax - eleMin)) * PLOT_H;
+  }
+
   // El gráfico no es geografía real, así que puede estirar su eje X para
   // llenar la tarjeta sin más: no hay riesgo de "distorsionar" nada, porque
   // no hay una proporción "correcta" que respetar (solo estaba fija en
@@ -95,28 +77,59 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
     return () => ro.disconnect();
   }, []);
 
-  const { linePoints, lineD, areaD, cumulativeLengths, lineTotalLength, summitPoint } = useMemo(() => {
-      const x = (distM: number) => PAD_LEFT + (distM / routeStats.distanceM) * (vw - PAD_LEFT);
-      const pts = routeTrack.map(([, , ele, dist]) => [x(dist), y(ele)] as const);
-      const line = pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
-      const area = `${line} L${vw},${VH - PAD_BOTTOM} L${PAD_LEFT},${VH - PAD_BOTTOM} Z`;
+  const summitIndex = useMemo(
+    () => track.reduce((best, p, i) => (p[2] > track[best][2] ? i : best), 0),
+    [track]
+  );
 
-      const cum: number[] = [0];
-      for (let i = 1; i < pts.length; i++) {
-        const [x0, y0] = pts[i - 1];
-        const [x1, y1] = pts[i];
-        cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
-      }
+  const {
+    linePoints,
+    lineD,
+    areaD,
+    cumulativeLengths,
+    lineTotalLength,
+    summitPoint,
+    distFractions,
+    summitFraction,
+  } = useMemo(() => {
+    const x = (distM: number) => PAD_LEFT + (distM / distanceM) * (vw - PAD_LEFT);
+    const pts = track.map(([, , ele, dist]) => [x(dist), y(ele)] as const);
+    const line = pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
+    const area = `${line} L${vw},${VH - PAD_BOTTOM} L${PAD_LEFT},${VH - PAD_BOTTOM} Z`;
 
-      return {
-        linePoints: pts,
-        lineD: line,
-        areaD: area,
-        cumulativeLengths: cum,
-        lineTotalLength: cum[cum.length - 1],
-        summitPoint: pts[summitIndex],
-      };
-    }, [vw]);
+    const cum: number[] = [0];
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1];
+      const [x1, y1] = pts[i];
+      cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
+    }
+
+    const fracs = track.map((p) => p[3] / distanceM);
+
+    return {
+      linePoints: pts,
+      lineD: line,
+      areaD: area,
+      cumulativeLengths: cum,
+      lineTotalLength: cum[cum.length - 1],
+      summitPoint: pts[summitIndex],
+      distFractions: fracs,
+      summitFraction: fracs[summitIndex],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vw, track, distanceM, summitIndex, eleMin, eleMax]);
+
+  // Dado drawProgress (fracción de distancia real 0–1), encuentra el tramo
+  // GPS en el que cae y la fracción dentro de ese tramo.
+  function bracketAtFraction(frac: number) {
+    const v = clamp(frac, 0, 1);
+    let i = 1;
+    while (i < distFractions.length - 1 && distFractions[i] < v) i++;
+    const segStart = distFractions[i - 1];
+    const segEnd = distFractions[i];
+    const segFrac = segEnd > segStart ? (v - segStart) / (segEnd - segStart) : 0;
+    return { i, segFrac };
+  }
 
   const handleMove = (e: PointerEvent<SVGSVGElement>) => {
     const svg = e.currentTarget;
@@ -135,7 +148,7 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
   };
 
   const hovered = hoveredIndex !== null ? linePoints[hoveredIndex] : null;
-  const hoveredTrack = hoveredIndex !== null ? routeTrack[hoveredIndex] : null;
+  const hoveredTrack = hoveredIndex !== null ? track[hoveredIndex] : null;
   const [summitX, summitY] = summitPoint;
 
   const areaOpacity = useTransform(drawProgress, [0, 0.3], [0, 1]);
@@ -168,7 +181,8 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
     };
     update(drawProgress.get());
     return drawProgress.on("change", update);
-  }, [drawProgress, lineTotalLength, cumulativeLengths]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawProgress, lineTotalLength, cumulativeLengths, distFractions, summitFraction]);
 
   return (
     <div ref={wrapRef} className="route-profile-svg-wrap overflow-hidden rounded-sm border border-[var(--border)] p-3">
@@ -177,7 +191,7 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
         className="h-full w-full cursor-crosshair touch-none"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={`Perfil de desnivel: de ${eleMin} a ${eleMax} metros a lo largo de ${(routeStats.distanceM / 1000).toFixed(1)} km. Pasa el cursor para ver el punto en el mapa.`}
+        aria-label={`Perfil de desnivel: de ${eleMin} a ${eleMax} metros a lo largo de ${(distanceM / 1000).toFixed(1)} km. Pasa el cursor para ver el punto en el mapa.`}
         onPointerMove={handleMove}
         onPointerLeave={() => onHoverIndex(null)}
       >
@@ -225,7 +239,7 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
             fontSize="11"
             style={{ fill: "var(--text-dim)" }}
           >
-            La Picota
+            {summitLabel}
           </text>
         </g>
 
@@ -287,7 +301,7 @@ export function ElevationProfile({ hoveredIndex, onHoverIndex, drawProgress }: P
           fontSize="11"
           style={{ fill: "var(--text-faint)" }}
         >
-          {(routeStats.distanceM / 1000).toFixed(1)} km
+          {(distanceM / 1000).toFixed(1)} km
         </text>
       </svg>
     </div>

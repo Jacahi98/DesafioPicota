@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AnimatePresence,
   motion,
   useMotionValue,
   useScroll,
@@ -9,37 +10,106 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
+import { ChevronsLeftRight } from "lucide-react";
 import { RouteMap } from "@/components/route-map";
 import { ElevationProfile } from "@/components/elevation-profile";
-import { routeStats } from "@/data/route-track";
+import {
+  ComparisonSlider,
+  ComparisonPanel,
+  ComparisonHandle,
+  type ComparisonSliderHandle,
+} from "@/components/core/comparison-slider";
+import { SlidingNumber } from "@/components/core/sliding-number";
+import { routeTrack, routeStats, andarinesTrack, andarinesStats, waypoints } from "@/data/route-track";
+import { buildTrackProgress, gainAtFraction } from "@/lib/track-progress";
 
-const waypoints = [
-  {
-    place: "Playa de Somocuevas",
-    terrain: "Arena",
-    text: "Salida a pie de playa. Los primeros metros se corren sobre arena compacta, con la marea marcando el ritmo.",
-  },
-  {
-    place: "Dunas de Liencres",
-    terrain: "Arena suelta",
-    text: "El parque natural más antiguo protegido de Cantabria. Aquí la arena deja de ser firme: cada zancada cuesta un poco más.",
-  },
-  {
-    place: "El Pinar",
-    terrain: "Bosque",
-    text: "Pino marítimo y sombra durante casi tres kilómetros. El terreno se endurece y el camino empieza a subir en serio.",
-  },
-  {
-    place: "La Picota",
-    terrain: "Roca y viento",
-    text: "232 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
-  },
-  {
-    place: "Tolio",
-    terrain: "Acantilado",
-    text: "El tramo más expuesto: sendero de acantilado de vuelta hacia Liencres, con el Cantábrico a un lado todo el descenso.",
-  },
-];
+// Progresión de distancia/desnivel+ de cada modalidad, derivada una sola
+// vez de sus trazados (estáticos) — no depende de nada que cambie en
+// tiempo de ejecución, así que vive fuera del componente.
+const trekkingProgress = buildTrackProgress(routeTrack, routeStats.distanceM, routeStats.gainM);
+const andarinesProgress = buildTrackProgress(andarinesTrack, andarinesStats.distanceM, andarinesStats.gainM);
+
+function round1(v: number) {
+  return Math.round(v * 10) / 10;
+}
+
+// Sigue drawProgress (motion value, cambia en cada frame de scroll sin
+// re-renderizar el resto del árbol) y solo convierte a estado de React el
+// número YA REDONDEADO que hace falta pintar — así el re-render solo
+// ocurre cuando el dígito visible cambia de verdad, no en cada frame. El
+// componente que llama a este hook se remonta con key={activeModality} (ver
+// LiveDistance/LiveGain más abajo), así que un cambio de modalidad siempre
+// arranca desde un valor inicial fresco sin lógica extra de "reset" aquí.
+function useLiveValue(drawProgress: MotionValue<number>, compute: (p: number) => number) {
+  const [value, setValue] = useState(() => compute(drawProgress.get()));
+  useEffect(() => {
+    return drawProgress.on("change", (p) => setValue(compute(p)));
+  }, [drawProgress, compute]);
+  return value;
+}
+
+// Distancia recorrida hasta el punto que se ve dibujado ahora mismo, junto
+// al total fijo de la modalidad — remontado por key={activeModality} desde
+// RouteSection para arrancar siempre en el valor correcto al cambiar de
+// modalidad, sin esperar al próximo evento de scroll.
+function LiveDistance({
+  drawProgress,
+  stats,
+}: {
+  drawProgress: MotionValue<number>;
+  stats: { distanceM: number };
+}) {
+  const km = useLiveValue(
+    drawProgress,
+    useCallback((p: number) => round1((p * stats.distanceM) / 1000), [stats.distanceM]),
+  );
+  const totalKm = round1(stats.distanceM / 1000);
+  // El total (p.ej. 12.8) marca cuántos dígitos enteros puede llegar a
+  // tener "x" — reservarlos desde el principio evita el salto de 9.9 a
+  // 10.0 (ver minIntegerDigits en SlidingNumber).
+  const minIntegerDigits = Math.trunc(totalKm).toString().length;
+  return (
+    <>
+      <SlidingNumber value={km} decimalPlaces={1} decimalSeparator="." minIntegerDigits={minIntegerDigits} />
+      <span className="text-[var(--text-faint)]">/</span>
+      <SlidingNumber value={totalKm} decimalPlaces={1} decimalSeparator="." minIntegerDigits={minIntegerDigits} />
+      <span>km</span>
+    </>
+  );
+}
+
+// Desnivel+ acumulado hasta el punto dibujado ahora mismo — no es
+// proporcional a drawProgress (solo sube en los tramos que ascienden), así
+// que usa el bracket real del trazado (gainAtFraction), no una regla de
+// tres. Mismo remontado por key={activeModality} que LiveDistance.
+function LiveGain({
+  drawProgress,
+  stats,
+  progress,
+}: {
+  drawProgress: MotionValue<number>;
+  stats: { gainM: number };
+  progress: ReturnType<typeof buildTrackProgress>;
+}) {
+  const gainSoFarM = useLiveValue(
+    drawProgress,
+    useCallback((p: number) => Math.round(gainAtFraction(progress, p)), [progress]),
+  );
+  // Mismo razonamiento que en LiveDistance: reserva desde el principio los
+  // dígitos que hagan falta para el total (9→10 y 99→100 incluidos).
+  const minIntegerDigits = Math.trunc(stats.gainM).toString().length;
+  return (
+    <>
+      <SlidingNumber value={gainSoFarM} minIntegerDigits={minIntegerDigits} />
+      <span className="text-[var(--text-faint)]">/</span>
+      <SlidingNumber value={stats.gainM} minIntegerDigits={minIntegerDigits} />
+      <span>m</span>
+    </>
+  );
+}
+
+type TrackPoint = readonly [number, number, number, number];
+type TrackStats = { distanceM: number; minEle: number; maxEle: number };
 
 // Cuánto scroll (px) hace falta para dibujar el mapa y el perfil una vez
 // fijos en pantalla.
@@ -92,6 +162,164 @@ function ExpandToggle({
   );
 }
 
+// El mapa+perfil de UNA modalidad (Trekking o Andarines) — se instancia dos
+// veces, una por cada lado del comparador de arrastre. Cada instancia lleva
+// su propio estado de "ampliar mapa/perfil" y su propio índice de hover: no
+// pueden compartirse entre modalidades porque un mismo índice apunta a
+// puntos distintos en cada trazado.
+function RouteStage({
+  isMobile,
+  track,
+  stats,
+  waypoints,
+  summitLabel,
+  ariaLabel,
+  drawProgress,
+  hoveredIndex,
+  onHoverIndex,
+}: {
+  isMobile: boolean;
+  track: TrackPoint[];
+  stats: TrackStats;
+  waypoints?: { place: string; terrain: string; text: string }[];
+  summitLabel?: string;
+  ariaLabel: string;
+  drawProgress: MotionValue<number>;
+  hoveredIndex: number | null;
+  onHoverIndex: (index: number | null) => void;
+}) {
+  const [expanded, setExpanded] = useState<"map" | "profile" | null>(null);
+  // El 25%/75% "puro" más el gap de 1.25rem entre columnas suma más del
+  // 100% del contenedor (framer-motion fija esto como width inline, así
+  // que una regla CSS con calc() no sirve de nada aquí — pierde siempre
+  // frente al estilo inline). Restar la mitad del gap a cada lado dentro
+  // del propio calc() de framer-motion es lo único que de verdad cambia el
+  // ancho renderizado.
+  const mapWidth = expanded === "profile" ? "0%" : expanded === "map" ? "100%" : "calc(25% - 0.625rem)";
+  const profileWidth = expanded === "map" ? "0%" : expanded === "profile" ? "100%" : "calc(75% - 0.625rem)";
+
+  return isMobile ? (
+    <div className="route-stage-mobile">
+      <RouteMap
+        track={track}
+        maxEle={stats.maxEle}
+        hoveredIndex={hoveredIndex}
+        drawProgress={drawProgress}
+        waypoints={waypoints}
+        summitLabel={summitLabel}
+        ariaLabel={ariaLabel}
+      />
+      <div className="route-stage-mobile-profile">
+        <ElevationProfile
+          track={track}
+          stats={stats}
+          hoveredIndex={hoveredIndex}
+          onHoverIndex={onHoverIndex}
+          drawProgress={drawProgress}
+          summitLabel={summitLabel}
+        />
+      </div>
+    </div>
+  ) : (
+    <div className="route-columns">
+      <motion.div
+        className="route-map-col relative overflow-hidden"
+        animate={{ width: mapWidth, opacity: expanded === "profile" ? 0 : 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <ExpandToggle
+          expanded={expanded === "map"}
+          label="el mapa"
+          onClick={() => setExpanded((e) => (e === "map" ? null : "map"))}
+        />
+        <RouteMap
+          track={track}
+          maxEle={stats.maxEle}
+          hoveredIndex={hoveredIndex}
+          drawProgress={drawProgress}
+          waypoints={waypoints}
+          summitLabel={summitLabel}
+          ariaLabel={ariaLabel}
+        />
+      </motion.div>
+
+      <motion.div
+        className="route-profile-col relative overflow-hidden"
+        animate={{ width: profileWidth, opacity: expanded === "map" ? 0 : 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <ExpandToggle
+          expanded={expanded === "profile"}
+          label="el perfil"
+          onClick={() => setExpanded((e) => (e === "profile" ? null : "profile"))}
+        />
+        <ElevationProfile
+          track={track}
+          stats={stats}
+          hoveredIndex={hoveredIndex}
+          onHoverIndex={onHoverIndex}
+          drawProgress={drawProgress}
+          summitLabel={summitLabel}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
+// Valor de una stat (distancia/desnivel/cota) con transición al cambiar de
+// modalidad: sale el número anterior, entra el nuevo — en vez de un
+// remplazo instantáneo, que con el imán del slider (siempre 0 o 100) pasa
+// a ocurrir en cada gesto, no solo alguna vez.
+function AnimatedStat({ value, statKey }: { value: string; statKey: string }) {
+  return (
+    <dd className="relative text-base text-[var(--ink)] sm:text-xl">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={statKey}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="inline-block"
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </dd>
+  );
+}
+
+// Botones para elegir explícitamente Trekking o Andarines: deslizan el
+// slider al extremo correspondiente (con animación, vía el spring del
+// propio ComparisonSlider) en vez de saltar de golpe.
+function ModalityToggle({
+  activeModality,
+  onSelect,
+}: {
+  activeModality: "trekking" | "andarines";
+  onSelect: (modality: "trekking" | "andarines") => void;
+}) {
+  return (
+    <div className="mb-3 inline-flex overflow-hidden rounded-sm border border-[var(--border)] font-mono text-[11px] uppercase tracking-wider">
+      {(["trekking", "andarines"] as const).map((modality) => (
+        <button
+          key={modality}
+          type="button"
+          onClick={() => onSelect(modality)}
+          aria-pressed={activeModality === modality}
+          className={`px-3 py-1.5 transition-colors ${
+            activeModality === modality
+              ? "bg-[var(--pine)] text-[var(--pine-ink)]"
+              : "bg-[var(--paper-raised)] text-[var(--text-dim)] hover:text-[var(--ink)]"
+          }`}
+        >
+          {modality === "trekking" ? "Trekking" : "Andarines"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function WaypointItem({
   wp,
   index,
@@ -133,10 +361,19 @@ function WaypointItem({
 }
 
 export function RouteSection() {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState<"map" | "profile" | null>(null);
-  const mapWidth = expanded === "profile" ? "0%" : expanded === "map" ? "100%" : "25%";
-  const profileWidth = expanded === "map" ? "0%" : expanded === "profile" ? "100%" : "75%";
+  // Un índice de hover por modalidad: el mismo número apunta a puntos
+  // distintos en el trazado de Trekking y en el de Andarines, así que no
+  // pueden compartir estado.
+  const [hoveredTrekking, setHoveredTrekking] = useState<number | null>(null);
+  const [hoveredAndarines, setHoveredAndarines] = useState<number | null>(null);
+
+  // ComparisonPanel position="left" (Trekking) se ve en el lado DERECHO del
+  // recorte y position="right" (Andarines) en el IZQUIERDO — así que pasado
+  // el 50% hay más Andarines visible que Trekking, no al revés. Las stats
+  // (distancia/desnivel/cota) siguen a quien ocupe más sitio en pantalla.
+  const [activeModality, setActiveModality] = useState<"trekking" | "andarines">("trekking");
+  const activeStats = activeModality === "trekking" ? routeStats : andarinesStats;
+  const sliderRef = useRef<ComparisonSliderHandle>(null);
 
   // Móvil estrecho apila mapa y perfil como dos tarjetas separadas a todo
   // el ancho, en vez del lado a lado 1/4-3/4 de tablet/desktop (a 1/4 de
@@ -204,6 +441,34 @@ export function RouteSection() {
     };
   }, [drawProgress]);
 
+  // Al cambiar de modalidad (imán del slider al soltar, o botón Trekking/
+  // Andarines) el scroll vuelve al principio del carril de dibujo, para que
+  // la modalidad recién elegida se vea dibujarse desde el inicio en vez de
+  // aparecer ya a medio dibujar en el punto de scroll donde estaba el
+  // usuario. getBoundingClientRect().top - HEADER_OFFSET es el desplazamiento
+  // que falta para llegar exactamente al scroll donde drawProgress = 0,
+  // funcione desde cualquier posición de scroll actual.
+  const scrollToRouteStart = () => {
+    const wrapper = pinWrapperRef.current;
+    if (!wrapper) return;
+    const top = wrapper.getBoundingClientRect().top;
+    window.scrollTo({ top: window.scrollY + (top - HEADER_OFFSET), behavior: "smooth" });
+  };
+
+  const lastCommittedModality = useRef<"trekking" | "andarines">("trekking");
+  const handleModalityCommit = (side: 0 | 100) => {
+    const modality = side === 100 ? "andarines" : "trekking";
+    setActiveModality(modality);
+    if (lastCommittedModality.current !== modality) {
+      lastCommittedModality.current = modality;
+      scrollToRouteStart();
+    }
+  };
+
+  // Progresión (distancia/desnivel+ ya recorridos) del trazado activo —
+  // LiveDistance/LiveGain la consumen remontadas por key={activeModality}.
+  const activeProgress = activeModality === "trekking" ? trekkingProgress : andarinesProgress;
+
   return (
     <section id="recorrido" className="bg-[var(--paper)] px-6 py-24 sm:px-8">
       <div className="mx-auto max-w-5xl">
@@ -232,85 +497,103 @@ export function RouteSection() {
                 Picota.
               </p>
 
-              <motion.dl
+              <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.5 }}
-                className="mt-4 grid grid-cols-3 gap-3 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3 font-mono sm:mt-10 sm:gap-4 sm:px-5 sm:py-4"
+                className="mt-4 sm:mt-10"
               >
-                <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
-                    Distancia
-                  </dt>
-                  <dd className="text-xl text-[var(--ink)]">
-                    {(routeStats.distanceM / 1000).toFixed(1)} km
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
-                    Desnivel+
-                  </dt>
-                  <dd className="text-xl text-[var(--ink)]">{routeStats.gainM} m</dd>
-                </div>
-                <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
-                    Cota máx.
-                  </dt>
-                  <dd className="text-xl text-[var(--ink)]">{routeStats.maxEle} m</dd>
-                </div>
-              </motion.dl>
+                <ModalityToggle
+                  activeModality={activeModality}
+                  onSelect={(modality) => sliderRef.current?.goTo(modality === "andarines" ? 100 : 0)}
+                />
+                <dl className="grid grid-cols-3 gap-3 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3 font-mono sm:gap-4 sm:px-5 sm:py-4">
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                      Distancia
+                    </dt>
+                    <dd className="flex flex-wrap items-baseline gap-x-1 text-base text-[var(--ink)] sm:text-xl">
+                      <LiveDistance key={activeModality} drawProgress={drawProgress} stats={activeStats} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                      Desnivel+
+                    </dt>
+                    <dd className="flex flex-wrap items-baseline gap-x-1 text-base text-[var(--ink)] sm:text-xl">
+                      <LiveGain
+                        key={activeModality}
+                        drawProgress={drawProgress}
+                        stats={activeStats}
+                        progress={activeProgress}
+                      />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                      Cota máx.
+                    </dt>
+                    <AnimatedStat statKey={activeModality} value={`${activeStats.maxEle} m`} />
+                  </div>
+                </dl>
+              </motion.div>
             </div>
 
-            {/* key distinto en cada rama: sin él React reutiliza los mismos
-                nodos al cambiar de layout y los estilos inline que Framer
-                Motion escribe (width del 25%/75% de escritorio) se quedan
-                pegados en la rama móvil, que solo anima height — el perfil
-                acababa midiendo 768px dentro de una tarjeta de 437px. */}
-            {isMobile ? (
-              <div key="stage-mobile" className="route-stage-mobile">
-                <RouteMap hoveredIndex={hoveredIndex} drawProgress={drawProgress} />
-                <div className="route-stage-mobile-profile">
-                  <ElevationProfile
-                    hoveredIndex={hoveredIndex}
-                    onHoverIndex={setHoveredIndex}
-                    drawProgress={drawProgress}
-                  />
+            {/* Arrastra el tirador para comparar Trekking (referencia, cinco
+                paradas) con Andarines (bucle corto, mismos dos altos). Las
+                dos modalidades comparten drawProgress: avanzan juntas con
+                el mismo scroll, cada una a su propio ritmo real. key
+                distinto en cada rama de isMobile: sin él, React reutiliza
+                los mismos nodos al cambiar de layout y los estilos inline
+                que Framer Motion escribe (width del 25%/75% de escritorio)
+                se quedan pegados en la rama móvil, que solo anima height —
+                el perfil acababa midiendo 768px dentro de una tarjeta de
+                437px. */}
+            {/* ComparisonPanel position="left" (Trekking) se ve en el lado
+                DERECHO del recorte, y position="right" (Andarines) en el
+                IZQUIERDO — así funciona el clip-path del propio componente
+                (motion-primitives), no un error de posición: solo importa
+                para las stats/paneles, ya no hay etiquetas de texto aquí
+                (sustituidas por ModalityToggle encima de las stats). */}
+            <ComparisonSlider
+              ref={sliderRef}
+              className="route-stage-compare"
+              defaultPosition={50}
+              onPositionChange={(pct) => setActiveModality(pct > 50 ? "andarines" : "trekking")}
+              onCommit={handleModalityCommit}
+            >
+              <ComparisonPanel position="left">
+                <RouteStage
+                  key={isMobile ? "trekking-mobile" : "trekking-columns"}
+                  isMobile={isMobile}
+                  track={routeTrack}
+                  stats={routeStats}
+                  waypoints={waypoints}
+                  ariaLabel="Mapa por satélite de la modalidad Trekking: bucle costero entre Somocuevas, las dunas de Liencres, el pinar y La Picota"
+                  drawProgress={drawProgress}
+                  hoveredIndex={hoveredTrekking}
+                  onHoverIndex={setHoveredTrekking}
+                />
+              </ComparisonPanel>
+              <ComparisonPanel position="right">
+                <RouteStage
+                  key={isMobile ? "andarines-mobile" : "andarines-columns"}
+                  isMobile={isMobile}
+                  track={andarinesTrack}
+                  stats={andarinesStats}
+                  ariaLabel="Mapa por satélite de la modalidad Andarines: bucle corto entre Monte Tolío y La Picota"
+                  drawProgress={drawProgress}
+                  hoveredIndex={hoveredAndarines}
+                  onHoverIndex={setHoveredAndarines}
+                />
+              </ComparisonPanel>
+              <ComparisonHandle className="group flex w-[3px] items-center justify-center bg-[var(--sand-gold)] shadow-[0_0_0_1px_rgba(0,0,0,0.25)]">
+                <div className="flex h-8 w-8 shrink-0 scale-100 items-center justify-center rounded-full border-2 border-[var(--sand-gold)] bg-[var(--paper)] text-[var(--pine)] shadow-[var(--shadow)] transition-transform duration-200 ease-out group-hover:scale-125 group-active:scale-150">
+                  <ChevronsLeftRight size={16} className="shrink-0" />
                 </div>
-              </div>
-            ) : (
-              <div key="stage-columns" className="route-columns">
-                <motion.div
-                  className="route-map-col relative overflow-hidden"
-                  animate={{ width: mapWidth, opacity: expanded === "profile" ? 0 : 1 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <ExpandToggle
-                    expanded={expanded === "map"}
-                    label="el mapa"
-                    onClick={() => setExpanded((e) => (e === "map" ? null : "map"))}
-                  />
-                  <RouteMap hoveredIndex={hoveredIndex} drawProgress={drawProgress} />
-                </motion.div>
-
-                <motion.div
-                  className="route-profile-col relative overflow-hidden"
-                  animate={{ width: profileWidth, opacity: expanded === "map" ? 0 : 1 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <ExpandToggle
-                    expanded={expanded === "profile"}
-                    label="el perfil"
-                    onClick={() => setExpanded((e) => (e === "profile" ? null : "profile"))}
-                  />
-                  <ElevationProfile
-                    hoveredIndex={hoveredIndex}
-                    onHoverIndex={setHoveredIndex}
-                    drawProgress={drawProgress}
-                  />
-                </motion.div>
-              </div>
-            )}
+              </ComparisonHandle>
+            </ComparisonSlider>
           </div>
           <div style={{ height: PIN_SCROLL_PX }} aria-hidden="true" />
         </div>

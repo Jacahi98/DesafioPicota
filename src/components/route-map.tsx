@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
-import { routeTrack, routeStats } from "@/data/route-track";
+import { ChevronDown } from "lucide-react";
+import { routeTrack as calibrationTrack } from "@/data/route-track";
+import { Disclosure, DisclosureTrigger, DisclosureContent } from "@/components/core/disclosure";
+
+type TrackPoint = readonly [number, number, number, number];
+type Waypoint = { place: string; terrain: string; text: string };
 
 // El trazado en sí ocupa esta caja "ajustada" (ROUTE_VW x ROUTE_VH, con PAD
 // de margen) — es el sistema de coordenadas de siempre. Pero la imagen de
@@ -30,15 +35,21 @@ const VH = ROUTE_VH + 2 * MARGIN_Y;
 // caja evita ese desfase.
 const MERC_R = 6378137;
 function mercX(lng: number) {
-  return MERC_R * (lng * Math.PI) / 180;
+  return (MERC_R * (lng * Math.PI)) / 180;
 }
 function mercY(lat: number) {
   const rad = (lat * Math.PI) / 180;
   return MERC_R * Math.log(Math.tan(Math.PI / 4 + rad / 2));
 }
 
-const mercXs = routeTrack.map((p) => mercX(p[0]));
-const mercYs = routeTrack.map((p) => mercY(p[1]));
+// La calibración mundo→viewBox (dónde cae cada lng/lat en el lienzo) está
+// fijada UNA sola vez, a partir del trazado de la carrera trail — no de
+// cada trazado que se dibuje. Así, tanto este recorrido como el de Andarines
+// (que comparten zona real y hasta cima, La Picota) se proyectan sobre la
+// MISMA imagen de satélite en la posición geográfica correcta uno respecto
+// al otro, en vez de que cada uno "encoja para caber" a su propia escala.
+const mercXs = calibrationTrack.map((p) => mercX(p[0]));
+const mercYs = calibrationTrack.map((p) => mercY(p[1]));
 const mercXMin = Math.min(...mercXs);
 const mercXMax = Math.max(...mercXs);
 const mercYMin = Math.min(...mercYs);
@@ -60,82 +71,8 @@ function project(lng: number, lat: number) {
   return [round(x), round(y)] as const;
 }
 
-const points = routeTrack.map(([lng, lat]) => project(lng, lat));
-const pathD = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-
-// Longitud acumulada del trazado EN PÍXELES (suma de segmentos proyectados)
-// — solo para dibujar el stroke-dasharray/dashoffset a mano (el pathLength
-// de Framer Motion emite dasharray en px, lo que rompe la normalización).
-// Esto NO es la distancia real recorrida: es una aproximación geométrica de
-// la proyección en pantalla, así que no sirve como parámetro de avance.
-const cumulativeLengths: number[] = [0];
-for (let i = 1; i < points.length; i++) {
-  const [x0, y0] = points[i - 1];
-  const [x1, y1] = points[i];
-  cumulativeLengths.push(cumulativeLengths[i - 1] + Math.hypot(x1 - x0, y1 - y0));
-}
-const pathTotalLength = cumulativeLengths[cumulativeLengths.length - 1];
-
-// Fracción de DISTANCIA REAL recorrida (dato GPS, routeTrack[i][3] en
-// metros) en cada punto — el parámetro de avance de verdad. drawProgress
-// representa esto, no una fracción de longitud en píxeles de ESTE mapa en
-// concreto: si cada componente (mapa, perfil de elevación) tradujera
-// drawProgress a su propia longitud visual directamente, cada uno
-// avanzaría a un ritmo distinto (curvas, subidas) aunque compartan el
-// mismo drawProgress — justo el desfase que se veía entre el mapa y el
-// perfil al hacer hover. Todo se ancla a esta fracción real en su lugar.
-const distFractions = routeTrack.map((p) => p[3] / routeStats.distanceM);
-
-const summitIndex = routeTrack.reduce(
-  (best, p, i) => (p[2] > routeTrack[best][2] ? i : best),
-  0
-);
-const [summitX, summitY] = points[summitIndex];
-const [startX, startY] = points[0];
-// Fracción de distancia real (0–1) en la que la cima cae — el rótulo
-// aparece justo cuando drawProgress la alcanza, no con un umbral fijo.
-const summitFraction = distFractions[summitIndex];
-
 function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
-}
-
-// Dado drawProgress (fracción de distancia real 0–1), encuentra el tramo
-// del trazado GPS en el que cae y la fracción dentro de ese tramo — a
-// partir de aquí se interpola tanto el punto en píxeles (para la cámara)
-// como la longitud en píxeles ya recorrida (para el dashoffset), así los
-// dos usan exactamente el mismo punto real del recorrido.
-function bracketAtFraction(frac: number) {
-  const v = clamp(frac, 0, 1);
-  let i = 1;
-  while (i < distFractions.length - 1 && distFractions[i] < v) i++;
-  const segStart = distFractions[i - 1];
-  const segEnd = distFractions[i];
-  const segFrac = segEnd > segStart ? (v - segStart) / (segEnd - segStart) : 0;
-  return { i, segFrac };
-}
-
-// Punto interpolado del trazado en una fracción de distancia real 0–1 dada
-// (no solo el punto discreto más cercano) — para que la cámara se mueva
-// con fluidez en vez de saltar de punto en punto del GPX.
-function pointAtFraction(frac: number): readonly [number, number] {
-  const { i, segFrac } = bracketAtFraction(frac);
-  const [x0, y0] = points[i - 1];
-  const [x1, y1] = points[i];
-  return [x0 + (x1 - x0) * segFrac, y0 + (y1 - y0) * segFrac];
-}
-
-// Longitud en píxeles del trazado ya "recorrida" en esa misma fracción de
-// distancia real — es lo que hay que restar de pathTotalLength para el
-// dashoffset, en vez de pathTotalLength*(1-v) directo (que asumiría que la
-// longitud en píxeles avanza al mismo ritmo que la distancia real, cosa
-// que no pasa en absoluto en el perfil de elevación, y no exactamente
-// tampoco aquí, aunque el error sea menor).
-function pixelLengthAtFraction(frac: number): number {
-  const { i, segFrac } = bracketAtFraction(frac);
-  const segStart = cumulativeLengths[i - 1];
-  const segEnd = cumulativeLengths[i];
-  return segStart + (segEnd - segStart) * segFrac;
 }
 
 // Alto de la ventana de cámara en modo seguimiento (unidades del viewBox);
@@ -178,13 +115,164 @@ type CameraRect = { x: number; y: number; w: number; h: number };
 // lado a otro y maree.
 const CAMERA_EASE = 0.12;
 
+// Tarjeta con la parada actual, sobre el propio mapa — el contenido
+// (nombre, terreno, texto) se actualiza solo según drawProgress, igual que
+// la cámara; abrir/cerrar es aparte, solo decide si se ve la descripción.
+// El estado open vive en RouteMap (no aquí dentro) porque la cámara
+// necesita saberlo: con la tarjeta desplegada sube el encuadre para que el
+// texto no tape el punto que se está seguindo.
+function WaypointCard({
+  waypoints,
+  drawProgress,
+  open,
+  onOpenChange,
+}: {
+  waypoints: Waypoint[];
+  drawProgress: MotionValue<number>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = drawProgress.on("change", (v) => {
+      const idx = Math.min(waypoints.length - 1, Math.max(0, Math.round(v * (waypoints.length - 1))));
+      setActiveIndex((prev) => (prev === idx ? prev : idx));
+    });
+    return unsubscribe;
+  }, [drawProgress, waypoints]);
+
+  const wp = waypoints[activeIndex];
+
+  return (
+    <Disclosure
+      open={open}
+      onOpenChange={onOpenChange}
+      transition={{ type: "spring", stiffness: 26.7, damping: 4.1, mass: 0.2 }}
+      variants={{ expanded: { opacity: 1 }, collapsed: { opacity: 0 } }}
+      className="absolute inset-x-0 bottom-0 rounded-b-sm bg-[#0a1108]/80 backdrop-blur-sm"
+    >
+      <DisclosureTrigger>
+        <button type="button" className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left">
+          <span className="min-w-0 truncate text-xs font-semibold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+            {wp.place}
+            <span className="ml-2 font-mono text-[10px] font-normal uppercase tracking-wider text-[var(--sand-gold)]">
+              {wp.terrain}
+            </span>
+          </span>
+          <ChevronDown size={14} className={`shrink-0 text-white/70 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </DisclosureTrigger>
+      <DisclosureContent>
+        <p className="px-3 pb-3 text-[11px] leading-relaxed text-white/80">{wp.text}</p>
+      </DisclosureContent>
+    </Disclosure>
+  );
+}
+
 export function RouteMap({
+  track,
+  maxEle,
   hoveredIndex,
   drawProgress,
+  waypoints,
+  summitLabel = "La Picota",
+  ariaLabel,
 }: {
+  track: TrackPoint[];
+  maxEle: number;
   hoveredIndex: number | null;
   drawProgress: MotionValue<number>;
+  // Opcional: solo el trekking (la carrera de referencia) tiene las cinco
+  // paradas narradas; Andarines no lleva tarjeta de parada.
+  waypoints?: Waypoint[];
+  summitLabel?: string;
+  ariaLabel: string;
 }) {
+  const {
+    points,
+    pathD,
+    cumulativeLengths,
+    pathTotalLength,
+    distFractions,
+    summitX,
+    summitY,
+    startX,
+    startY,
+    summitFraction,
+  } = useMemo(() => {
+    const pts = track.map(([lng, lat]) => project(lng, lat));
+    const d = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+
+    // Longitud acumulada del trazado EN PÍXELES (suma de segmentos
+    // proyectados) — solo para el stroke-dasharray/dashoffset a mano (el
+    // pathLength de Framer Motion emite dasharray en px, lo que rompe la
+    // normalización). No es la distancia real: es la aproximación
+    // geométrica de la proyección en pantalla.
+    const cum: number[] = [0];
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1];
+      const [x1, y1] = pts[i];
+      cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
+    }
+    const total = cum[cum.length - 1];
+
+    // Fracción de DISTANCIA REAL recorrida (dato GPS, track[i][3] en
+    // metros) en cada punto — el parámetro de avance de verdad. drawProgress
+    // representa esto, no una fracción de longitud en píxeles de este mapa
+    // en concreto.
+    const fracs = track.map((p) => p[3] / track[track.length - 1][3]);
+
+    const summitIdx = track.reduce((best, p, i) => (p[2] > track[best][2] ? i : best), 0);
+    const [sx, sy] = pts[summitIdx];
+    const [stx, sty] = pts[0];
+
+    return {
+      points: pts,
+      pathD: d,
+      cumulativeLengths: cum,
+      pathTotalLength: total,
+      distFractions: fracs,
+      summitX: sx,
+      summitY: sy,
+      startX: stx,
+      startY: sty,
+      summitFraction: fracs[summitIdx],
+    };
+  }, [track]);
+
+  // Dado drawProgress (fracción de distancia real 0–1), encuentra el tramo
+  // del trazado GPS en el que cae y la fracción dentro de ese tramo — a
+  // partir de aquí se interpola tanto el punto en píxeles (para la cámara)
+  // como la longitud en píxeles ya recorrida (para el dashoffset), así los
+  // dos usan exactamente el mismo punto real del recorrido.
+  function bracketAtFraction(frac: number) {
+    const v = clamp(frac, 0, 1);
+    let i = 1;
+    while (i < distFractions.length - 1 && distFractions[i] < v) i++;
+    const segStart = distFractions[i - 1];
+    const segEnd = distFractions[i];
+    const segFrac = segEnd > segStart ? (v - segStart) / (segEnd - segStart) : 0;
+    return { i, segFrac };
+  }
+
+  // Punto interpolado del trazado en una fracción de distancia real 0–1
+  // dada (no solo el punto discreto más cercano) — para que la cámara se
+  // mueva con fluidez en vez de saltar de punto en punto del GPX.
+  function pointAtFraction(frac: number): readonly [number, number] {
+    const { i, segFrac } = bracketAtFraction(frac);
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    return [x0 + (x1 - x0) * segFrac, y0 + (y1 - y0) * segFrac];
+  }
+
+  function pixelLengthAtFraction(frac: number): number {
+    const { i, segFrac } = bracketAtFraction(frac);
+    const segStart = cumulativeLengths[i - 1];
+    const segEnd = cumulativeLengths[i];
+    return segStart + (segEnd - segStart) * segFrac;
+  }
+
   const hovered = hoveredIndex !== null ? points[hoveredIndex] : null;
 
   const summitOpacity = useTransform(drawProgress, [summitFraction, summitFraction + 0.01], [0, 1]);
@@ -193,6 +281,7 @@ export function RouteMap({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [aspect, setAspect] = useState(VW / VH);
+  const [waypointOpen, setWaypointOpen] = useState(false);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -252,9 +341,15 @@ export function RouteMap({
       const centerX = lerp(ROUTE_CENTER_X, cx, zl);
       const centerY = lerp(ROUTE_CENTER_Y, cy, zl);
 
+      // Con la tarjeta de parada desplegada, el texto tapa la franja
+      // inferior del mapa — subimos el punto seguido de la mitad (50%) a
+      // ~32% del alto visible para que quede libre por debajo, en vez de
+      // centrarlo y que la descripción lo cubra justo donde está la línea.
+      const verticalBias = lerp(0.5, 0.32, zl * (waypointOpen ? 1 : 0));
+
       return {
         x: clamp(centerX - w / 2, 0, VW - w),
-        y: clamp(centerY - h / 2, 0, VH - h),
+        y: clamp(centerY - h * verticalBias, 0, VH - h),
         w,
         h,
       };
@@ -329,7 +424,8 @@ export function RouteMap({
       unsubscribe();
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [drawProgress, aspect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawProgress, aspect, waypointOpen, points, cumulativeLengths, distFractions]);
 
   return (
     <div ref={wrapRef} className="route-map-svg-wrap relative overflow-hidden rounded-sm border border-[var(--border)] p-3">
@@ -339,7 +435,7 @@ export function RouteMap({
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Mapa por satélite del recorrido: bucle costero entre Somocuevas, las dunas de Liencres, el pinar y La Picota"
+        aria-label={ariaLabel}
       >
         <image
           href="/route-satellite-wide.jpg"
@@ -390,7 +486,7 @@ export function RouteMap({
           </text>
         </g>
 
-        {/* Cima de La Picota: aparece justo cuando la línea llega a este punto */}
+        {/* Cima: aparece justo cuando la línea llega a este punto */}
         <motion.g style={{ opacity: summitOpacity }}>
           <circle
             cx={summitX}
@@ -410,7 +506,7 @@ export function RouteMap({
             strokeWidth="3"
             paintOrder="stroke"
           >
-            La Picota · 232 m
+            {summitLabel} · {maxEle} m
           </text>
         </motion.g>
 
@@ -437,6 +533,10 @@ export function RouteMap({
         </svg>
         N
       </div>
+
+      {waypoints && (
+        <WaypointCard waypoints={waypoints} drawProgress={drawProgress} open={waypointOpen} onOpenChange={setWaypointOpen} />
+      )}
     </div>
   );
 }

@@ -132,6 +132,31 @@ body {
   flex-direction: row;
   gap: 1.25rem;
 }
+
+/* Comparador Trekking/Andarines (route-section.tsx): el hueco que sobra en
+   la caja sticky ahora lo ocupa ESTE contenedor (antes lo ocupaba
+   .route-columns/.route-stage-mobile directamente) — dentro van DOS copias
+   completas del mapa+perfil, superpuestas con position:absolute y recortadas
+   por clip-path (ComparisonPanel), así que cada una necesita llenar el 100%
+   de su panel en vez de reclamar flex:1 por su cuenta (ya no son hijas
+   flex directas de .route-pin-sticky). */
+.route-stage-compare {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+.route-stage-compare .route-columns,
+.route-stage-compare .route-stage-mobile {
+  flex: none;
+  height: 100%;
+  min-height: 0;
+}
+/* El ancho real de estas dos columnas lo fija framer-motion como estilo
+   inline (animate={{ width }} en route-section.tsx, para poder animar el
+   toggle de ampliar mapa/perfil) — un width aquí en CSS nunca gana frente a
+   eso, así que el 25%/75% "de verdad" (ya descontado el gap para que la
+   suma no pase del 100%, ver el cálculo de mapWidth/profileWidth) vive
+   allí, no en esta regla. */
 .route-map-col {
   width: 25%;
   height: 100%;

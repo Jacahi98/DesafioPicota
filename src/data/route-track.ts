@@ -105,3 +105,99 @@ export const routeStats = {
   minEle: 8,
   maxEle: 232,
 };
+
+// Trazado de la modalidad Andarines (Wikiloc: Liencres - Monte Tolío - Monte
+// La Picota - Liencres), un bucle mucho más corto que toca los mismos dos
+// altos que la carrera trail. Mismo formato que routeTrack.
+export const andarinesTrack: [number, number, number, number][] = [
+  [-3.9408, 43.453, 83, 0],
+  [-3.9401, 43.4533, 86, 86],
+  [-3.9397, 43.4533, 92, 161],
+  [-3.9393, 43.4527, 112, 243],
+  [-3.9392, 43.4521, 133, 322],
+  [-3.9397, 43.4515, 135, 403],
+  [-3.9395, 43.4511, 195, 483],
+  [-3.9399, 43.4504, 225, 564],
+  [-3.9403, 43.4498, 228, 641],
+  [-3.9408, 43.4492, 226, 722],
+  [-3.9412, 43.4486, 225, 805],
+  [-3.9415, 43.448, 236, 883],
+  [-3.9419, 43.4473, 237, 964],
+  [-3.9416, 43.4469, 235, 1045],
+  [-3.9416, 43.4465, 218, 1123],
+  [-3.9425, 43.4464, 211, 1202],
+  [-3.943, 43.4458, 198, 1285],
+  [-3.9433, 43.4452, 193, 1360],
+  [-3.9436, 43.4445, 193, 1445],
+  [-3.944, 43.444, 207, 1521],
+  [-3.9435, 43.4435, 201, 1600],
+  [-3.9437, 43.4429, 186, 1683],
+  [-3.9441, 43.4423, 185, 1763],
+  [-3.9448, 43.4418, 190, 1843],
+  [-3.9453, 43.4412, 220, 1923],
+  [-3.9449, 43.4407, 227, 2003],
+  [-3.9446, 43.4401, 241, 2085],
+  [-3.9446, 43.4399, 244, 2165],
+  [-3.9448, 43.4405, 234, 2240],
+  [-3.9454, 43.4411, 240, 2321],
+  [-3.945, 43.4416, 223, 2402],
+  [-3.9444, 43.4422, 197, 2480],
+  [-3.9439, 43.4427, 189, 2560],
+  [-3.9435, 43.4434, 190, 2645],
+  [-3.9439, 43.4438, 203, 2724],
+  [-3.9437, 43.4444, 203, 2805],
+  [-3.9433, 43.445, 187, 2883],
+  [-3.943, 43.4456, 196, 2963],
+  [-3.9432, 43.4462, 195, 3043],
+  [-3.9436, 43.4469, 179, 3125],
+  [-3.9435, 43.4476, 168, 3204],
+  [-3.9433, 43.4483, 161, 3285],
+  [-3.9429, 43.4489, 144, 3364],
+  [-3.9426, 43.4495, 143, 3441],
+  [-3.9421, 43.4501, 139, 3525],
+  [-3.9418, 43.4507, 140, 3602],
+  [-3.9417, 43.4514, 129, 3682],
+  [-3.9418, 43.4521, 115, 3765],
+  [-3.9412, 43.4526, 120, 3844],
+  [-3.9407, 43.453, 120, 3900],
+];
+
+export const andarinesStats = {
+  distanceM: 3900,
+  gainM: 324,
+  lossM: 287,
+  minEle: 83,
+  maxEle: 244,
+};
+
+// Las cinco paradas del recorrido, repartidas a partes iguales sobre
+// drawProgress (0, 0.25, 0.5, 0.75, 1) — la misma aproximación que ya usaba
+// el timeline de abajo del mapa/perfil, ahora también la fuente para la
+// tarjeta de info que se actualiza sola encima del mapa según el scroll.
+export const waypoints = [
+  {
+    place: "Playa de Somocuevas",
+    terrain: "Arena",
+    text: "Salida a pie de playa. Los primeros metros se corren sobre arena compacta, con la marea marcando el ritmo.",
+  },
+  {
+    place: "Dunas de Liencres",
+    terrain: "Arena suelta",
+    text: "El parque natural más antiguo protegido de Cantabria. Aquí la arena deja de ser firme: cada zancada cuesta un poco más.",
+  },
+  {
+    place: "El Pinar",
+    terrain: "Bosque",
+    text: "Pino marítimo y sombra durante casi tres kilómetros. El terreno se endurece y el camino empieza a subir en serio.",
+  },
+  {
+    place: "La Picota",
+    terrain: "Roca y viento",
+    text: "232 metros sobre el mar, entre los restos de una torre defensiva y de un búnker de la Guerra Civil. La ría de Mogro se abre en herradura justo debajo.",
+  },
+  {
+    place: "Tolio",
+    terrain: "Acantilado",
+    text: "El tramo más expuesto: sendero de acantilado de vuelta hacia Liencres, con el Cantábrico a un lado todo el descenso.",
+  },
+];
