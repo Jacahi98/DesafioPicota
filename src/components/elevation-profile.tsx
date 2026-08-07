@@ -10,11 +10,13 @@ type TrackPoint = readonly [number, number, number, number];
 // distorsiona nada y se lee mejor, sobre todo junto al mapa en escritorio.
 const VH = 320;
 const PAD_TOP = 44;
+// Mínimos: los valores reales se calculan en el componente a partir de
+// labelFont, porque ese tamaño varía con el alto de la tarjeta (ver más
+// abajo) y unos márgenes fijos dejaban el texto invadiendo el gráfico.
 const PAD_BOTTOM = 36;
 // Hueco a la izquierda para las etiquetas del eje Y ("232 m", etc.): el
 // trazado empieza aquí, no en x=0, así nunca se monta encima del texto.
 const PAD_LEFT = 36;
-const PLOT_H = VH - PAD_TOP - PAD_BOTTOM;
 // Ancho "por defecto" antes de medir la tarjeta real (SSR/primer pintado).
 const DEFAULT_VW = 800;
 // Nunca más estrecho que esto, aunque la tarjeta salga rarísima de ancha.
@@ -22,6 +24,28 @@ const MIN_VW = 500;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
+}
+
+// Marcas del eje Y en múltiplos redondos (50, 100, 150…) en vez de
+// mínimo/medio/máximo, que no son una escala: daban valores arbitrarios como
+// "6 m" o "120 m" (el punto medio exacto de un rango cualquiera). Se coge el
+// paso más pequeño de la lista que no pase del número de marcas permitido, y
+// se añade además la cota máxima real —la cima, que sí es un dato— salvo que
+// caiga tan pegada a la última marca que se solaparían.
+function buildEleAxis(min: number, max: number, maxTicks: number) {
+  const span = Math.max(1, max - min);
+  const step = [10, 20, 25, 50, 100, 200, 250, 500].find((s) => span / s <= maxTicks) ?? 1000;
+  // El eje arranca en el múltiplo redondo justo por debajo de la cota mínima
+  // (y nunca por debajo de 0), no en la cota mínima exacta. Si arranca en la
+  // cota exacta, la primera franja vale menos metros que las demás —con este
+  // recorrido, de 6 a 50 son 44 m frente a los 50 de las siguientes— y se ve
+  // que la separación de abajo no cuadra con el resto aunque la escala sea
+  // perfectamente lineal.
+  const floor = Math.max(0, Math.floor(min / step) * step);
+  const ticks: number[] = [];
+  for (let v = floor; v <= max; v += step) ticks.push(v);
+  if (ticks.length === 0 || max - ticks[ticks.length - 1] > step * 0.35) ticks.push(max);
+  return { ticks, floor };
 }
 
 type Props = {
@@ -47,8 +71,12 @@ export function ElevationProfile({
   const wrapRef = useRef<HTMLDivElement>(null);
   const { distanceM, minEle: eleMin, maxEle: eleMax } = stats;
 
+  // Ojo: el suelo de la escala es scaleMin (múltiplo redondo), NO la cota
+  // mínima real — así todas las franjas del eje valen los mismos metros.
+  // scaleMin se define más abajo (necesita boxH); y() solo se llama al
+  // pintar, cuando ya existe.
   function y(ele: number) {
-    return PAD_TOP + (1 - (ele - eleMin) / (eleMax - eleMin)) * PLOT_H;
+    return PAD_TOP + (1 - (ele - scaleMin) / (eleMax - scaleMin)) * plotH;
   }
 
   // El gráfico no es geografía real, así que puede estirar su eje X para
@@ -63,6 +91,9 @@ export function ElevationProfile({
   // visible era más estrecho por el letterbox. Sin tope, viewBox y caja
   // siempre coinciden exactos, así que esa conversión es siempre correcta.
   const [vw, setVw] = useState(DEFAULT_VW);
+  // Alto real de la tarjeta en px, para poder compensar el tamaño del texto
+  // (ver labelFont).
+  const [boxH, setBoxH] = useState(VH);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -71,11 +102,39 @@ export function ElevationProfile({
       const { width, height } = entry.contentRect;
       if (width > 0 && height > 0) {
         setVw(Math.max(MIN_VW, (width / height) * VH));
+        setBoxH(height);
       }
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // El viewBox tiene alto fijo (VH) pero la tarjeta no, así que todo lo que
+  // se mide en unidades de viewBox se escala por boxH/VH al pintarse. Un
+  // fontSize fijo de 11 acababa en 3,8 px reales en tarjetas bajas —
+  // ilegible. Aquí se hace el camino inverso: se calcula el tamaño en
+  // unidades de viewBox que da SIEMPRE ~12 px en pantalla, sea cual sea el
+  // alto de la tarjeta. El clamp evita valores absurdos en casos extremos.
+  const LABEL_PX = 12;
+  const labelFont = Math.round(Math.min(48, Math.max(7, (LABEL_PX * VH) / Math.max(1, boxH))));
+
+  // Los márgenes tienen que crecer con labelFont, no ser fijos: al compensar
+  // el tamaño del texto, en tarjetas bajas la fuente pasa de 11 a ~32
+  // unidades de viewBox, y con PAD_LEFT fijo en 36 una etiqueta como
+  // "200 m" ya no cabía en su hueco y se metía dentro del gráfico. Igual
+  // abajo: con PAD_BOTTOM fijo, "0 m" y "0 km" quedaban a 14 px uno de otro.
+  // En mono cada carácter mide ~0,6 em y la etiqueta más larga son 5-6
+  // caracteres, de ahí el 3,6.
+  const padLeft = Math.max(PAD_LEFT, Math.round(labelFont * 3.6));
+  const padBottom = Math.max(PAD_BOTTOM, Math.round(labelFont * 2.4));
+  const plotH = VH - PAD_TOP - padBottom;
+
+  // En tarjetas bajas caben menos marcas sin amontonarse, así que el eje se
+  // vuelve más grueso (pasos de 100 en vez de 50) en lugar de apretar texto.
+  const { ticks: eleTicks, floor: scaleMin } = useMemo(
+    () => buildEleAxis(eleMin, eleMax, boxH < 150 ? 3 : 5),
+    [eleMin, eleMax, boxH],
+  );
 
   const summitIndex = useMemo(
     () => track.reduce((best, p, i) => (p[2] > track[best][2] ? i : best), 0),
@@ -92,10 +151,10 @@ export function ElevationProfile({
     distFractions,
     summitFraction,
   } = useMemo(() => {
-    const x = (distM: number) => PAD_LEFT + (distM / distanceM) * (vw - PAD_LEFT);
+    const x = (distM: number) => padLeft + (distM / distanceM) * (vw - padLeft);
     const pts = track.map(([, , ele, dist]) => [x(dist), y(ele)] as const);
     const line = pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
-    const area = `${line} L${vw},${VH - PAD_BOTTOM} L${PAD_LEFT},${VH - PAD_BOTTOM} Z`;
+    const area = `${line} L${vw},${VH - padBottom} L${padLeft},${VH - padBottom} Z`;
 
     const cum: number[] = [0];
     for (let i = 1; i < pts.length; i++) {
@@ -117,7 +176,7 @@ export function ElevationProfile({
       summitFraction: fracs[summitIndex],
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vw, track, distanceM, summitIndex, eleMin, eleMax]);
+  }, [vw, track, distanceM, summitIndex, scaleMin, eleMax, padLeft, padBottom, plotH]);
 
   // Dado drawProgress (fracción de distancia real 0–1), encuentra el tramo
   // GPS en el que cae y la fracción dentro de ese tramo.
@@ -202,7 +261,7 @@ export function ElevationProfile({
           </linearGradient>
         </defs>
 
-        {[eleMin, Math.round((eleMin + eleMax) / 2), eleMax].map((v) => (
+        {eleTicks.map((v) => (
           <line
             key={v}
             x1="0"
@@ -236,7 +295,7 @@ export function ElevationProfile({
             y={summitY - 10}
             textAnchor="middle"
             className="font-mono"
-            fontSize="11"
+            fontSize={labelFont}
             style={{ fill: "var(--text-dim)" }}
           >
             {summitLabel}
@@ -247,10 +306,25 @@ export function ElevationProfile({
             la línea (no antes, como las guías): si no, cuando el trazado
             estirado pasa cerca del borde inferior (tramos bajos, costeros)
             se comía el texto por encima. */}
-        {[eleMin, Math.round((eleMin + eleMax) / 2), eleMax].map((v) => (
+        {/* En tarjetas bajas se omite la etiqueta del suelo del eje: queda
+            justo encima de la fila del eje X y "0 m" y "0 km" acababan a 11
+            px uno de otro, pareciendo que marcan lo mismo. La línea guía del
+            0 sigue dibujada y, con las marcas repartidas de forma regular, el
+            suelo se lee igual de bien. */}
+        {eleTicks.filter((v) => !(v === scaleMin && boxH < 200)).map((v) => (
           <g key={v}>
-            <rect x="0" y={y(v) - 15} width="40" height="14" style={{ fill: "var(--paper)" }} opacity="0.85" />
-            <text x="4" y={y(v) - 4} className="font-mono" fontSize="11" style={{ fill: "var(--text-faint)" }}>
+            {/* El fondo de la etiqueta también escala con la fuente: con un
+                width fijo de 40 dejaba de tapar el trazado por debajo del
+                texto en cuanto la fuente crecía. */}
+            <rect
+              x="0"
+              y={y(v) - labelFont - 3}
+              width={padLeft - 4}
+              height={labelFont + 4}
+              style={{ fill: "var(--paper)" }}
+              opacity="0.85"
+            />
+            <text x="4" y={y(v) - 4} className="font-mono" fontSize={labelFont} style={{ fill: "var(--sea)" }}>
               {v} m
             </text>
           </g>
@@ -262,7 +336,7 @@ export function ElevationProfile({
               x1={hovered[0]}
               x2={hovered[0]}
               y1={PAD_TOP}
-              y2={VH - PAD_BOTTOM}
+              y2={VH - padBottom}
               style={{ stroke: "var(--text-dim)" }}
               strokeWidth="1"
               strokeDasharray="3,3"
@@ -281,7 +355,7 @@ export function ElevationProfile({
                 y="-5"
                 textAnchor="middle"
                 className="font-mono"
-                fontSize="11"
+                fontSize={labelFont}
                 style={{ fill: "var(--paper)" }}
               >
                 {Math.round(hoveredTrack[2])} m · {(hoveredTrack[3] / 1000).toFixed(1)} km
@@ -290,7 +364,12 @@ export function ElevationProfile({
           </g>
         )}
 
-        <text x="0" y={VH - 8} className="font-mono" fontSize="11" style={{ fill: "var(--text-faint)" }}>
+        {/* El "0 km" se alinea con PAD_LEFT, que es donde empieza de verdad
+            el trazado, no con x=0. Pegado al borde quedaba justo debajo del
+            "0 m" del eje Y y los dos parecían marcar el mismo punto, cuando
+            cada uno es el origen de su propio eje: el del eje Y está en el
+            borde izquierdo y el del eje X, PAD_LEFT más allá. */}
+        <text x={padLeft} y={VH - 8} className="font-mono" fontSize={labelFont} style={{ fill: "var(--sea)" }}>
           0 km
         </text>
         <text
@@ -298,8 +377,8 @@ export function ElevationProfile({
           y={VH - 8}
           textAnchor="end"
           className="font-mono"
-          fontSize="11"
-          style={{ fill: "var(--text-faint)" }}
+          fontSize={labelFont}
+          style={{ fill: "var(--sea)" }}
         >
           {(distanceM / 1000).toFixed(1)} km
         </text>

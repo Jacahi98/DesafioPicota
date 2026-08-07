@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { MotionProvider } from "@/components/motion-provider";
+import { WaveLines } from "@/components/core/wave-lines";
 import "./globals.css";
-
-const fraunces = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  axes: ["opsz", "SOFT", "WONK"],
-  style: ["normal", "italic"],
-  weight: "variable",
-});
 
 const publicSans = Public_Sans({
   variable: "--font-body",
@@ -81,7 +74,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${fraunces.variable} ${publicSans.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${publicSans.variable} ${plexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
@@ -91,6 +84,7 @@ export default function RootLayout({
               "try{var t=localStorage.getItem('picota-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}",
           }}
         />
+        <WaveLines />
         <MotionProvider>{children}</MotionProvider>
         <Analytics />
         <SpeedInsights />

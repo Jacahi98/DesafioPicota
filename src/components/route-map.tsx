@@ -360,8 +360,32 @@ export function RouteMap({
       // ROUTE_VH) — así se ve el recorrido completo siempre, usando el
       // margen de imagen real (MARGIN_X/MARGIN_Y) para crecer hacia donde
       // haga falta según la proporción, en vez de recortar el trazado.
-      const overviewW = Math.min(VW, Math.max(ROUTE_VW, ROUTE_VH * aspect));
-      const overviewH = Math.min(VH, Math.max(ROUTE_VH, ROUTE_VW / aspect));
+      // La ventana tiene que tener EXACTAMENTE la proporción de la tarjeta:
+      // el <svg> usa preserveAspectRatio="meet", así que cualquier desajuste
+      // no recorta, sino que deja bandas vacías (se veían arriba y abajo del
+      // mapa al 0% y al 100%, donde no hay zoom). Antes se recortaba cada eje
+      // por su cuenta con Math.min(VW/VH, …), y ese recorte asimétrico era
+      // justo lo que rompía la proporción: con una tarjeta de 0,36 la ventana
+      // pedía 420x1163 y el min la dejaba en 420x840 (0,50).
+      let overviewW = Math.max(ROUTE_VW, ROUTE_VH * aspect);
+      let overviewH = overviewW / aspect;
+      if (overviewH < ROUTE_VH) {
+        overviewH = ROUTE_VH;
+        overviewW = overviewH * aspect;
+      }
+      // Si esa ventana no cabe en el lienzo se encogen los DOS ejes a la vez
+      // (factor común), que es la única forma de no romper la proporción. En
+      // proporciones de tarjeta normales el factor es 1.
+      //
+      // Pero encoger nunca puede llegar a dejar fuera parte del trazado: ver
+      // el recorrido entero es justo para lo que está el plano general. El
+      // lienzo (VW x VH) da de sí para contener el trazado con la proporción
+      // exacta de la tarjeta mientras esa proporción esté ~entre 0,5 y 2,3;
+      // fuera de ese rango (tarjetas malamente apaisadas o malamente
+      // verticales) se prefiere una banda pequeña antes que perder trazado.
+      const fit = Math.min(1, VW / overviewW, VH / overviewH);
+      overviewW = Math.min(VW, Math.max(overviewW * fit, ROUTE_VW));
+      overviewH = Math.min(VH, Math.max(overviewH * fit, ROUTE_VH));
 
       // Seguimiento: ventana ajustada a la proporción de la tarjeta, tan
       // cerca como TRACK_H permite sin exceder el lienzo.
@@ -470,7 +494,7 @@ export function RouteMap({
   return (
     // Inclinación 3D que sigue al cursor — efecto "tarjeta" claramente
     // perceptible al pasar el ratón.
-    <Tilt rotationFactor={12} springOptions={{ stiffness: 300, damping: 30, mass: 0.5 }} className="h-full w-full">
+    <Tilt rotationFactor={3} springOptions={{ stiffness: 220, damping: 42, mass: 0.5 }} className="h-full w-full">
       <div ref={wrapRef} className="route-map-svg-wrap relative overflow-hidden rounded-sm border border-[var(--border)] p-3">
         <svg
           ref={svgRef}

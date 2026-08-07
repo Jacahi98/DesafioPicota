@@ -80,9 +80,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.font-display {
-  font-family: var(--font-display), Georgia, serif;
-  font-optical-sizing: auto;
+/* La serif de display (Fraunces) se retiró: el logotipo es ahora la única
+   voz de display de la web, así que la fuente quedaba usada en un par de
+   titulares sueltos y sin papel propio. Los titulares van en la sans con
+   más peso y tracking cerrado. */
+h1,
+h2,
+h3 {
   text-wrap: balance;
 }
 
@@ -121,17 +125,27 @@ body {
    alto que sobra (flex:1 en .route-columns) tras el título+stats, así que
    ni hace falta media una altura por JS ni puede desbordar por abajo:
    height fija a 100svh menos header y margen inferior es el techo. */
+/* Sin fondo opaco a propósito: este bloque cubre casi toda la ventana
+   mientras está fijado, así que un background sólido tapaba por completo
+   las líneas del fondo justo en la sección más larga de la web. El mapa y
+   el perfil llevan su propio fondo, que es lo que de verdad necesita ser
+   opaco; el resto deja ver las líneas pasar por detrás. */
 .route-pin-sticky {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   height: calc(100svh - 96px);
-  background: var(--paper);
+}
+/* Sin esto, el bloque de título+stats usa min-height:auto (el mínimo de
+   contenido de un ítem flex) y en pantallas bajas se niega a ceder alto,
+   empujando el mapa/perfil fuera de la caja. */
+.route-pin-sticky > * {
+  min-height: 0;
 }
 .route-columns,
 .route-stage-mobile {
   flex: 1 1 auto;
-  min-height: 220px;
+  min-height: 120px;
 }
 .route-columns {
   display: flex;
@@ -149,7 +163,7 @@ body {
 .route-stage-compare {
   position: relative;
   flex: 1 1 auto;
-  min-height: 220px;
+  min-height: 120px;
 }
 .route-stage-compare .route-columns,
 .route-stage-compare .route-stage-mobile {
@@ -193,22 +207,36 @@ body {
    llena entera sin recortar geografía ni desperdiciar ancho. El mapa se
    lleva más presupuesto de alto (62/38) porque a su contenido (vertical)
    le cuesta más encajar en una tarjeta ancha que al perfil (apaisado). */
+/* El reparto 62/38 va con flex-basis 0 + grow proporcional, NO con
+   flex-basis en %. Dos motivos, los dos vistos fallando de verdad:
+   1) un basis en % se calcula sobre el alto del contenedor SIN descontar
+      el gap, así que 62% + 38% + 1rem se pasaba del 100%; y al ser
+      flex-shrink 0, en vez de encoger, el perfil se salía de la caja y no
+      llegaba a verse en pantallas bajas.
+   2) el hijo directo del flex es el envoltorio del efecto Tilt, no el
+      .route-map-svg-wrap: la regla apuntaba a un nieto, así que quien
+      mandaba se dimensionaba por contenido. Por eso ahora se apunta al
+      hijo directo (>) y los envoltorios de dentro solo estiran al 100%.
+   Con basis 0 se reparte el espacio que queda TRAS el gap, y con
+   min-height 0 pueden encoger de verdad: encaja a cualquier alto. */
 .route-stage-mobile {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-height: 0;
 }
-.route-stage-mobile .route-map-svg-wrap {
-  flex: 0 0 62%;
+.route-stage-mobile > * {
   min-height: 0;
   width: 100%;
 }
-.route-stage-mobile-profile {
-  flex: 0 0 38%;
-  min-height: 0;
-  width: 100%;
+.route-stage-mobile > *:not(.route-stage-mobile-profile) {
+  flex: 62 1 0;
+}
+.route-stage-mobile > .route-stage-mobile-profile {
+  flex: 38 1 0;
   overflow: hidden;
 }
+.route-stage-mobile .route-map-svg-wrap,
 .route-stage-mobile-profile .route-profile-svg-wrap {
   height: 100%;
   width: 100%;

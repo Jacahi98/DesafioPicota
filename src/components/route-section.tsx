@@ -307,7 +307,7 @@ function ModalityToggle({
   onSelect: (modality: "trekking" | "andarines") => void;
 }) {
   return (
-    <div className="mb-3 inline-flex overflow-hidden rounded-sm border border-[var(--border)] font-mono text-[11px] uppercase tracking-wider">
+    <div className="inline-flex shrink-0 overflow-hidden rounded-sm border border-[var(--border)] font-mono text-[11px] uppercase tracking-wider">
       {(["trekking", "andarines"] as const).map((modality) => (
         <button
           key={modality}
@@ -357,7 +357,7 @@ function WaypointItem({
         aria-hidden="true"
       />
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="font-display text-2xl text-[var(--ink)]">{wp.place}</h3>
+        <h3 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{wp.place}</h3>
         <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent-rose)]">
           {wp.terrain}
         </span>
@@ -395,7 +395,13 @@ export function RouteSection() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
+    // 899 y no 639: por debajo de ~900 px, la columna del mapa (25% del
+    // ancho) se quedaba en ~110 px, una tira tan estrecha que su proporción
+    // (0,31) ya no permite encajar el trazado entero en el lienzo — o se
+    // recortaba el recorrido o salían bandas vacías. Apilados (mapa arriba a
+    // todo el ancho, perfil debajo) la tarjeta recupera una proporción sana
+    // y se ve el recorrido completo.
+    const mq = window.matchMedia("(max-width: 899px)");
     const sync = () => setIsMobile(mq.matches);
     sync();
     mq.addEventListener("change", sync);
@@ -455,12 +461,60 @@ export function RouteSection() {
   // usuario. getBoundingClientRect().top - HEADER_OFFSET es el desplazamiento
   // que falta para llegar exactamente al scroll donde drawProgress = 0,
   // funcione desde cualquier posición de scroll actual.
+  // Bloquea el imán mientras hay un scroll programado en marcha: si no, el
+  // propio desplazamiento suave dispararía otra vez el imán y se realimenta.
+  const programmaticScrollRef = useRef(false);
+
   const scrollToRouteStart = () => {
     const wrapper = pinWrapperRef.current;
     if (!wrapper) return;
     const top = wrapper.getBoundingClientRect().top;
+    programmaticScrollRef.current = true;
+    window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 900);
     window.scrollTo({ top: window.scrollY + (top - HEADER_OFFSET), behavior: "smooth" });
   };
+
+  // Imán al llegar al recorrido: si el usuario para de hacer scroll BAJANDO
+  // y el inicio del carril ha quedado cerca por debajo, se completa solo el
+  // trecho que falta para encajar la sección. Secuestrar el scroll es fácil
+  // que moleste, así que va con varios frenos:
+  //  - solo bajando (subiendo no engancha, o no podrías salir de la sección);
+  //  - solo en una banda intermedia (SNAP_MIN..SNAP_MAX): pegado ya no hace
+  //    falta, y lejos sería un tirón que el usuario no ha pedido;
+  //  - solo tras 140 ms sin hacer scroll, nunca mientras se mueve;
+  //  - nada si el sistema pide reducir movimiento — es movimiento que el
+  //    usuario no ha iniciado, justo lo que esa preferencia quiere evitar.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const SNAP_MIN = 8;
+    let lastY = window.scrollY;
+    let idleTimer: number | undefined;
+
+    const maybeSnap = () => {
+      const wrapper = pinWrapperRef.current;
+      if (!wrapper || programmaticScrollRef.current) return;
+      const distance = wrapper.getBoundingClientRect().top - HEADER_OFFSET;
+      const snapMax = Math.min(window.innerHeight * 0.42, 380);
+      if (distance > SNAP_MIN && distance < snapMax) scrollToRouteStart();
+    };
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      const goingDown = y > lastY;
+      lastY = y;
+      window.clearTimeout(idleTimer);
+      if (goingDown) idleTimer = window.setTimeout(maybeSnap, 140);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(idleTimer);
+    };
+  }, []);
 
   const lastCommittedModality = useRef<"trekking" | "andarines">("trekking");
   const handleModalityCommit = (side: 0 | 100) => {
@@ -477,7 +531,7 @@ export function RouteSection() {
   const activeProgress = activeModality === "trekking" ? trekkingProgress : andarinesProgress;
 
   return (
-    <section id="recorrido" className="bg-[var(--paper)] px-6 py-24 sm:px-8">
+    <section id="recorrido" className="px-6 py-24 sm:px-8">
       <div className="mx-auto max-w-5xl">
         {/* Título+stats y mapa/perfil viven en el mismo wrapper con scroll
             "carril" (el spacer de PIN_SCROLL_PX) y son sticky los dos, cada
@@ -493,27 +547,40 @@ export function RouteSection() {
         <div ref={pinWrapperRef} className="relative">
           <div className="route-pin-sticky sticky" style={{ top: HEADER_OFFSET }}>
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--sea)]">
-                El recorrido
-              </p>
-              <h2 className="font-display text-4xl italic text-[var(--ink)] sm:text-5xl">
-                Cuatro paradas
-              </h2>
-
+              {/* "El recorrido" pasa de <p> a <h2>: al quitar el "Cuatro
+                  paradas" que hacía de h2, la sección se quedaba sin
+                  encabezado y el documento saltaba de h1 a h3 (los nombres
+                  de las paradas). Mismo aspecto de antestítulo, pero la
+                  jerarquía sigue siendo válida. */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.5 }}
-                className="mt-4 sm:mt-10"
               >
-                <ModalityToggle
-                  activeModality={activeModality}
-                  onSelect={(modality) => sliderRef.current?.goTo(modality === "andarines" ? 100 : 0)}
-                />
-                <dl className="grid grid-cols-[1.3fr_1.05fr_0.75fr] gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-3 py-3 font-mono sm:grid-cols-3 sm:gap-4 sm:px-5 sm:py-4">
+                {/* Título y selector comparten fila: el bloque entero vive
+                    dentro de una caja fija de alto calc(100svh - 96px), así
+                    que cada línea que se apila aquí se la quita al mapa y al
+                    perfil de abajo. Apilados, en móvil el perfil se salía
+                    del recuadro y no llegaba a verse. */}
+                <div className="mb-3 flex items-center justify-between gap-3 sm:mb-5">
+                  {/* clamp en vez de saltos por breakpoint: el titular vive
+                      dentro de una caja de alto fijo, así que interesa que
+                      crezca de forma continua con el ancho y nunca de golpe. */}
+                  <h2 className="text-[clamp(1.6rem,5vw,3rem)] font-semibold leading-tight tracking-tight text-[var(--ink)]">
+                    El recorrido
+                  </h2>
+                  <ModalityToggle
+                    activeModality={activeModality}
+                    onSelect={(modality) => sliderRef.current?.goTo(modality === "andarines" ? 100 : 0)}
+                  />
+                </div>
+                {/* Fondo translúcido + blur en vez de opaco: así se ven las
+                    líneas del fondo pasando por detrás sin que las cifras
+                    pierdan contraste. */}
+                <dl className="grid grid-cols-[1.3fr_1.05fr_0.75fr] gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)]/70 px-3 py-3 font-mono backdrop-blur-sm sm:grid-cols-3 sm:gap-4 sm:px-5 sm:py-4">
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--sea)]">
                       Distancia
                     </dt>
                     <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
@@ -521,7 +588,7 @@ export function RouteSection() {
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--sea)]">
                       Desnivel+
                     </dt>
                     <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
@@ -534,7 +601,7 @@ export function RouteSection() {
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+                    <dt className="text-[10px] uppercase tracking-wider text-[var(--sea)]">
                       Cota máx.
                     </dt>
                     <AnimatedStat statKey={activeModality} value={`${activeStats.maxEle} m`} />

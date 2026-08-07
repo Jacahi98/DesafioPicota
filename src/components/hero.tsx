@@ -1,41 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Eye, X } from "lucide-react";
 import { routeStats } from "@/data/route-track";
-
-// Líneas de nivel que sugieren las dunas de Liencres vistas desde arriba —
-// no es decoración genérica, es el propio terreno de la carrera.
-function DuneContours() {
-  const lines = [
-    "M-40,120 C120,60 260,180 440,90 C580,20 720,140 880,70",
-    "M-40,200 C100,150 260,260 440,180 C600,110 740,220 880,160",
-    "M-40,280 C90,240 250,330 440,270 C610,210 750,300 880,250",
-    "M-40,360 C110,330 260,400 440,350 C600,300 760,380 880,340",
-  ];
-  return (
-    <svg
-      viewBox="0 0 880 420"
-      className="absolute inset-0 h-full w-full"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-    >
-      {lines.map((d, i) => (
-        <motion.path
-          key={i}
-          d={d}
-          fill="none"
-          style={{ stroke: "var(--accent-rose)" }}
-          strokeWidth="1"
-          opacity={0.16 + i * 0.03}
-          animate={{ x: i % 2 === 0 ? [0, 18, 0] : [0, -18, 0] }}
-          transition={{ duration: 16 + i * 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }}
-        />
-      ))}
-    </svg>
-  );
-}
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -51,18 +20,13 @@ export function Hero() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
   const contentScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
   const contentY = useTransform(scrollYProgress, [0, 1], [0, -36]);
-  const duneY = useTransform(scrollYProgress, [0, 1], [0, 90]);
 
   return (
     <section
       ref={sectionRef}
       id="top"
-      className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--paper)]"
+      className="relative overflow-hidden border-b border-[var(--border)]"
     >
-      <motion.div style={{ y: duneY }} className="absolute inset-0">
-        <DuneContours />
-      </motion.div>
-
       <motion.div
         style={{ opacity: contentOpacity, scale: contentScale, y: contentY }}
         className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-14 sm:px-8 sm:pt-16 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-20"
@@ -78,17 +42,35 @@ export function Hero() {
           </motion.p>
 
           <div className="relative flex items-start gap-3">
+            {/* El h1 se mantiene como h1 aunque ahora sea una imagen: el
+                nombre sigue llegando a Google y a los lectores de pantalla
+                por el alt, que es el texto que antes estaba escrito aquí.
+                Dos ficheros (claro/oscuro) alternados por .icon-light/
+                .icon-dark, igual que en header y footer. */}
             <motion.h1
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.05 }}
               onMouseEnter={() => setPhotoOpen(true)}
               onMouseLeave={() => setPhotoOpen(false)}
-              className="font-display text-[13vw] italic leading-[0.95] text-[var(--ink)] sm:text-6xl lg:text-7xl"
+              className="w-[68vw] max-w-[300px] sm:w-[340px] sm:max-w-none lg:w-[420px]"
             >
-              Desafío
-              <br />
-              <span className="text-[var(--pine)]">Picota</span>
+              <Image
+                src="/logo-wordmark-light.png"
+                alt="Desafío Picota · Trail Run"
+                width={790}
+                height={525}
+                priority
+                className="icon-light h-auto w-full"
+              />
+              <Image
+                src="/logo-wordmark-dark.png"
+                alt="Desafío Picota · Trail Run"
+                width={790}
+                height={525}
+                priority
+                className="icon-dark h-auto w-full"
+              />
             </motion.h1>
 
             {/* En escritorio el hover sobre las letras del título ya revela
@@ -138,17 +120,17 @@ export function Hero() {
 
         <dl className="grid grid-cols-3 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-8 lg:min-w-[280px] lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
           <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Distancia</dt>
+            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Distancia</dt>
             <dd className="whitespace-nowrap text-lg sm:text-2xl">
               {(routeStats.distanceM / 1000).toFixed(1)} km
             </dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Desnivel+</dt>
+            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Desnivel+</dt>
             <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.gainM} m</dd>
           </div>
           <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Cota máx.</dt>
+            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Cota máx.</dt>
             <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.maxEle} m</dd>
           </div>
         </dl>

@@ -26,7 +26,7 @@ export function Footer() {
   return (
     <footer className="mt-auto border-t border-[var(--border)] bg-[var(--paper-sunken)] py-10">
       <div className="mx-auto max-w-6xl px-6 sm:px-8">
-        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--sea)]">
           Colaboradores
         </p>
       </div>
@@ -56,7 +56,13 @@ export function Footer() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 sm:px-8">
-        <div className="flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
+        {/* items-start es imprescindible en el layout de móvil (flex-col): sin
+            él, align-items vale "stretch" y los logos se estiran a todo el
+            ancho del contenedor manteniendo h-8 de alto, o sea deformados a
+            lo ancho. w-auto no lo impide — el estirado del flex manda sobre
+            el ancho automático. En sm: el flex pasa a fila y ahí el eje
+            transversal ya es la altura, así que items-center es correcto. */}
+        <div className="flex flex-col items-start gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
           <Image
             src="/logo-wordmark-light.png"
             alt="Desafío Picota Trail Run"
