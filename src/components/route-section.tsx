@@ -272,7 +272,7 @@ function RouteStage({
 // a ocurrir en cada gesto, no solo alguna vez.
 function AnimatedStat({ value, statKey }: { value: string; statKey: string }) {
   return (
-    <dd className="relative text-base text-[var(--ink)] sm:text-xl">
+    <dd className="relative whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={statKey}
@@ -508,20 +508,20 @@ export function RouteSection() {
                   activeModality={activeModality}
                   onSelect={(modality) => sliderRef.current?.goTo(modality === "andarines" ? 100 : 0)}
                 />
-                <dl className="grid grid-cols-3 gap-3 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3 font-mono sm:gap-4 sm:px-5 sm:py-4">
-                  <div>
+                <dl className="grid grid-cols-[1.3fr_1.05fr_0.75fr] gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-3 py-3 font-mono sm:grid-cols-3 sm:gap-4 sm:px-5 sm:py-4">
+                  <div className="min-w-0">
                     <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
                       Distancia
                     </dt>
-                    <dd className="flex flex-wrap items-baseline gap-x-1 text-base text-[var(--ink)] sm:text-xl">
+                    <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
                       <LiveDistance key={activeModality} drawProgress={drawProgress} stats={activeStats} />
                     </dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
                       Desnivel+
                     </dt>
-                    <dd className="flex flex-wrap items-baseline gap-x-1 text-base text-[var(--ink)] sm:text-xl">
+                    <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
                       <LiveGain
                         key={activeModality}
                         drawProgress={drawProgress}
@@ -530,7 +530,7 @@ export function RouteSection() {
                       />
                     </dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
                       Cota máx.
                     </dt>

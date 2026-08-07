@@ -137,18 +137,20 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <dl className="grid grid-cols-3 gap-x-8 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] lg:min-w-[280px] lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
-          <div>
+        <dl className="grid grid-cols-3 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-8 lg:min-w-[280px] lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
+          <div className="min-w-0">
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Distancia</dt>
-            <dd className="text-2xl">{(routeStats.distanceM / 1000).toFixed(1)} km</dd>
+            <dd className="whitespace-nowrap text-lg sm:text-2xl">
+              {(routeStats.distanceM / 1000).toFixed(1)} km
+            </dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Desnivel+</dt>
-            <dd className="text-2xl">{routeStats.gainM} m</dd>
+            <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.gainM} m</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">Cota máx.</dt>
-            <dd className="text-2xl">{routeStats.maxEle} m</dd>
+            <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.maxEle} m</dd>
           </div>
         </dl>
       </motion.div>
