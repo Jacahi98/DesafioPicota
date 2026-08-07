@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Disclosure, DisclosureTrigger, DisclosureContent } from "@/components/core/disclosure";
+import { Tilt } from "@/components/core/tilt";
 
 type TrackPoint = readonly [number, number, number, number];
 type Waypoint = { place: string; terrain: string; icon: LucideIcon; text: string; startFraction: number };
@@ -179,7 +180,7 @@ function WaypointCard({
             nombre. */}
         <button type="button" className="flex w-full flex-col gap-1 px-3 py-2 text-left">
           <span className="flex w-full items-start justify-between gap-2">
-            <span className="min-w-0 text-xs font-semibold leading-snug text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+            <span className="min-w-0 text-sm font-semibold leading-snug text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
               {wp.place}
             </span>
             <ChevronDown
@@ -203,7 +204,7 @@ function WaypointCard({
           del propio título. Con tope, como mucho aparece scroll interno,
           nunca se sale de la tarjeta. */}
       <DisclosureContent className="max-h-32 overflow-y-auto">
-        <p className="px-3 pb-3 text-[11px] leading-relaxed text-white/80">{wp.text}</p>
+        <p className="px-3 pb-3 text-[12.5px] leading-relaxed text-white/80">{wp.text}</p>
       </DisclosureContent>
     </Disclosure>
   );
@@ -467,115 +468,119 @@ export function RouteMap({
   }, [drawProgress, aspect, waypointOpen, points, cumulativeLengths, distFractions]);
 
   return (
-    <div ref={wrapRef} className="route-map-svg-wrap relative overflow-hidden rounded-sm border border-[var(--border)] p-3">
-      <svg
-        ref={svgRef}
-        viewBox={`${MARGIN_X} ${MARGIN_Y} ${ROUTE_VW} ${ROUTE_VH}`}
-        className="h-full w-full"
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={ariaLabel}
-      >
-        <image
-          href="/route-satellite-wide.jpg"
-          x="0"
-          y="0"
-          width={VW}
-          height={VH}
-          preserveAspectRatio="xMidYMid slice"
-        />
-        <rect x="0" y="0" width={VW} height={VH} fill="#0a1108" opacity="0.12" />
-
-        {/* Casing oscuro para que el trazado se lea sobre cualquier tono de la foto */}
-        <path
-          d={pathD}
-          fill="none"
-          stroke="rgba(10, 14, 8, 0.55)"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <motion.path
-          d={pathD}
-          fill="none"
-          style={{
-            stroke: "var(--accent-rose)",
-            strokeDasharray: pathTotalLength,
-            strokeDashoffset: dashOffset,
-          }}
-          strokeWidth="2.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Salida / meta: visible desde el principio, es el origen del trazado */}
-        <g>
-          <circle cx={startX} cy={startY} r="5.5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
-          <text
-            x={startX + 11}
-            y={startY - 8}
-            className="font-mono"
-            fontSize="11"
-            fill="#fff"
-            stroke="#0a1108"
-            strokeWidth="3"
-            paintOrder="stroke"
-          >
-            Salida / meta
-          </text>
-        </g>
-
-        {/* Cima: aparece justo cuando la línea llega a este punto */}
-        <motion.g style={{ opacity: summitOpacity }}>
-          <circle
-            cx={summitX}
-            cy={summitY}
-            r="5"
-            style={{ fill: "var(--accent-rose)" }}
-            stroke="#0a1108"
-            strokeWidth="1.5"
+    // Inclinación 3D que sigue al cursor — efecto "tarjeta" claramente
+    // perceptible al pasar el ratón.
+    <Tilt rotationFactor={12} springOptions={{ stiffness: 300, damping: 30, mass: 0.5 }} className="h-full w-full">
+      <div ref={wrapRef} className="route-map-svg-wrap relative overflow-hidden rounded-sm border border-[var(--border)] p-3">
+        <svg
+          ref={svgRef}
+          viewBox={`${MARGIN_X} ${MARGIN_Y} ${ROUTE_VW} ${ROUTE_VH}`}
+          className="h-full w-full"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={ariaLabel}
+        >
+          <image
+            href="/route-satellite-wide.jpg"
+            x="0"
+            y="0"
+            width={VW}
+            height={VH}
+            preserveAspectRatio="xMidYMid slice"
           />
-          <text
-            x={summitX + 11}
-            y={summitY + 4}
-            className="font-mono"
-            fontSize="11"
-            fill="#fff"
-            stroke="#0a1108"
-            strokeWidth="3"
-            paintOrder="stroke"
-          >
-            {summitLabel} · {maxEle} m
-          </text>
-        </motion.g>
+          <rect x="0" y="0" width={VW} height={VH} fill="#0a1108" opacity="0.12" />
 
-        {hovered && (
+          {/* Casing oscuro para que el trazado se lea sobre cualquier tono de la foto */}
+          <path
+            d={pathD}
+            fill="none"
+            stroke="rgba(10, 14, 8, 0.55)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <motion.path
+            d={pathD}
+            fill="none"
+            style={{
+              stroke: "var(--accent-rose)",
+              strokeDasharray: pathTotalLength,
+              strokeDashoffset: dashOffset,
+            }}
+            strokeWidth="2.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Salida / meta: visible desde el principio, es el origen del trazado */}
           <g>
-            <circle cx={hovered[0]} cy={hovered[1]} r="9" style={{ fill: "var(--accent-rose)" }} opacity="0.35" />
-            <circle cx={hovered[0]} cy={hovered[1]} r="5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
+            <circle cx={startX} cy={startY} r="5.5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
+            <text
+              x={startX + 11}
+              y={startY - 8}
+              className="font-mono"
+              fontSize="11"
+              fill="#fff"
+              stroke="#0a1108"
+              strokeWidth="3"
+              paintOrder="stroke"
+            >
+              Salida / meta
+            </text>
           </g>
-        )}
-      </svg>
 
-      {/* Norte: fuera del SVG, fijo en la esquina de la tarjeta — dentro del
-          SVG se movería con la cámara en vez de quedarse quieto en pantalla.
-          Esquina izquierda porque el botón de ampliar vista ocupa la derecha
-          en el modo no-móvil y tapaba la flecha ahí. */}
-      <div
-        className="pointer-events-none absolute left-3 top-3 flex flex-col items-center gap-0.5 font-mono text-[10px] text-white"
-        style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
-        aria-hidden="true"
-      >
-        <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
-          <line x1="6" y1="16" x2="6" y2="2" stroke="white" strokeWidth="1.4" />
-          <path d="M6,0 L2.5,7 L6,4.5 L9.5,7 Z" fill="white" />
+          {/* Cima: aparece justo cuando la línea llega a este punto */}
+          <motion.g style={{ opacity: summitOpacity }}>
+            <circle
+              cx={summitX}
+              cy={summitY}
+              r="5"
+              style={{ fill: "var(--accent-rose)" }}
+              stroke="#0a1108"
+              strokeWidth="1.5"
+            />
+            <text
+              x={summitX + 11}
+              y={summitY + 4}
+              className="font-mono"
+              fontSize="11"
+              fill="#fff"
+              stroke="#0a1108"
+              strokeWidth="3"
+              paintOrder="stroke"
+            >
+              {summitLabel} · {maxEle} m
+            </text>
+          </motion.g>
+
+          {hovered && (
+            <g>
+              <circle cx={hovered[0]} cy={hovered[1]} r="9" style={{ fill: "var(--accent-rose)" }} opacity="0.35" />
+              <circle cx={hovered[0]} cy={hovered[1]} r="5" fill="#fff" stroke="#0a1108" strokeWidth="2" />
+            </g>
+          )}
         </svg>
-        N
-      </div>
 
-      {waypoints && (
-        <WaypointCard waypoints={waypoints} drawProgress={drawProgress} open={waypointOpen} onOpenChange={setWaypointOpen} />
-      )}
-    </div>
+        {/* Norte: fuera del SVG, fijo en la esquina de la tarjeta — dentro del
+            SVG se movería con la cámara en vez de quedarse quieto en pantalla.
+            Esquina izquierda porque el botón de ampliar vista ocupa la derecha
+            en el modo no-móvil y tapaba la flecha ahí. */}
+        <div
+          className="pointer-events-none absolute left-3 top-3 flex flex-col items-center gap-0.5 font-mono text-[10px] text-white"
+          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+          aria-hidden="true"
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
+            <line x1="6" y1="16" x2="6" y2="2" stroke="white" strokeWidth="1.4" />
+            <path d="M6,0 L2.5,7 L6,4.5 L9.5,7 Z" fill="white" />
+          </svg>
+          N
+        </div>
+
+        {waypoints && (
+          <WaypointCard waypoints={waypoints} drawProgress={drawProgress} open={waypointOpen} onOpenChange={setWaypointOpen} />
+        )}
+      </div>
+    </Tilt>
   );
 }

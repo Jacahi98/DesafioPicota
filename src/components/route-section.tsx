@@ -194,9 +194,16 @@ function RouteStage({
   // que una regla CSS con calc() no sirve de nada aquí — pierde siempre
   // frente al estilo inline). Restar la mitad del gap a cada lado dentro
   // del propio calc() de framer-motion es lo único que de verdad cambia el
-  // ancho renderizado.
-  const mapWidth = expanded === "profile" ? "0%" : expanded === "map" ? "100%" : "calc(25% - 0.625rem)";
-  const profileWidth = expanded === "map" ? "0%" : expanded === "profile" ? "100%" : "calc(75% - 0.625rem)";
+  // ancho renderizado. Al ampliar uno a "100%" el gap SIGUE ahí entre las
+  // dos columnas (una a 0%, la otra a 100% — no desaparece porque una mida
+  // cero), así que el 100% "puro" también se pasaba del contenedor por el
+  // gap entero: el borde derecho (fin de la escala, botón de ampliar)
+  // quedaba recortado por el clip-path del comparador de arriba. Restar el
+  // gap completo (no la mitad) cuando está ampliado corrige eso.
+  const mapWidth =
+    expanded === "profile" ? "0%" : expanded === "map" ? "calc(100% - 1.25rem)" : "calc(25% - 0.625rem)";
+  const profileWidth =
+    expanded === "map" ? "0%" : expanded === "profile" ? "calc(100% - 1.25rem)" : "calc(75% - 0.625rem)";
 
   return isMobile ? (
     <div className="route-stage-mobile">
