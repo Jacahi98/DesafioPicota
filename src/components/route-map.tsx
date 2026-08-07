@@ -165,7 +165,7 @@ function WaypointCard({
       onOpenChange={onOpenChange}
       transition={{ type: "spring", stiffness: 26.7, damping: 4.1, mass: 0.2 }}
       variants={{ expanded: { opacity: 1 }, collapsed: { opacity: 0 } }}
-      className="absolute inset-x-0 bottom-0 rounded-b-sm bg-[#0a1108]/80 backdrop-blur-sm"
+      className="absolute inset-x-0 bottom-0 rounded-b-sm bg-[var(--paper-sunken)]/95 backdrop-blur-sm"
     >
       <DisclosureTrigger>
         {/* El icono va en su PROPIA fila, debajo del título — no metido en
@@ -180,12 +180,12 @@ function WaypointCard({
             nombre. */}
         <button type="button" className="flex w-full flex-col gap-1 px-3 py-2 text-left">
           <span className="flex w-full items-start justify-between gap-2">
-            <span className="min-w-0 text-sm font-semibold leading-snug text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+            <span className="min-w-0 text-sm font-semibold leading-snug text-[var(--ink)]">
               {wp.place}
             </span>
             <ChevronDown
               size={14}
-              className={`mt-0.5 shrink-0 text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`mt-0.5 shrink-0 text-[var(--text-dim)] transition-transform ${open ? "rotate-180" : ""}`}
             />
           </span>
           {/* Icono en vez de la palabra del terreno — el texto sigue
@@ -204,7 +204,7 @@ function WaypointCard({
           del propio título. Con tope, como mucho aparece scroll interno,
           nunca se sale de la tarjeta. */}
       <DisclosureContent className="max-h-32 overflow-y-auto">
-        <p className="px-3 pb-3 text-[12.5px] leading-relaxed text-white/80">{wp.text}</p>
+        <p className="px-3 pb-3 text-[12.5px] leading-relaxed text-[var(--text-dim)]">{wp.text}</p>
       </DisclosureContent>
     </Disclosure>
   );

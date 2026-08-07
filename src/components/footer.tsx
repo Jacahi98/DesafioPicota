@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { APP_VERSION } from "@/lib/version";
 import { InfiniteSlider } from "@/components/core/infinite-slider";
+import { ProgressiveBlur } from "@/components/core/progressive-blur";
 
 // Placeholders — sustituir por los logos reales de los colaboradores
 // cuando se confirmen.
@@ -30,11 +31,29 @@ export function Footer() {
         </p>
       </div>
 
-      <InfiniteSlider gap={16} speed={28} speedOnHover={8} className="mb-10">
-        {collaborators.map((label) => (
-          <CollaboratorBadge key={label} label={label} />
-        ))}
-      </InfiniteSlider>
+      {/* Los bordes de la tira se difuminan en vez de cortar en seco — dos
+          capas de ProgressiveBlur (izquierda/derecha) sobre el mismo
+          slider, cada una un degradado de varias capas de backdrop-blur
+          creciente, no un simple fade de opacidad. */}
+      <div className="relative mb-10">
+        <InfiniteSlider gap={16} speed={28} speedOnHover={8}>
+          {collaborators.map((label) => (
+            <CollaboratorBadge key={label} label={label} />
+          ))}
+        </InfiniteSlider>
+        {/* La posición (absolute inset-y-0 ...) va en un envoltorio aparte:
+            ProgressiveBlur ya se marca "relative" a sí mismo por dentro, y
+            pasarle "absolute" en el mismo className choca con eso (misma
+            propiedad CSS, position, dos clases compitiendo) — el resultado
+            era un elemento de alto 0 e invisible. Aquí solo se le pasa
+            tamaño (h-full w-full), la posición la pone el div de fuera. */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-28">
+          <ProgressiveBlur direction="left" blurIntensity={1} className="h-full w-full" />
+        </div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-28">
+          <ProgressiveBlur direction="right" blurIntensity={1} className="h-full w-full" />
+        </div>
+      </div>
 
       <div className="mx-auto max-w-6xl px-6 sm:px-8">
         <div className="flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
