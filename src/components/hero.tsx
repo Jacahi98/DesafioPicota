@@ -29,19 +29,19 @@ export function Hero() {
     >
       <motion.div
         style={{ opacity: contentOpacity, scale: contentScale, y: contentY }}
-        className="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-14 sm:px-8 sm:pt-16 lg:flex-row lg:items-end lg:gap-16 lg:pb-28 lg:pt-20"
+        className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 px-6 pb-20 pt-14 text-center sm:px-8 sm:pt-16 lg:pb-28 lg:pt-20"
       >
         <div className="max-w-2xl">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--sea)]"
+            className="mb-5 text-center text-xs font-semibold uppercase tracking-[0.22em] text-[var(--sea)]"
           >
             Liencres · Parque Natural de las Dunas
           </motion.p>
 
-          <div className="relative flex items-start gap-3">
+          <div className="relative flex items-start justify-center gap-3">
             {/* El h1 se mantiene como h1 aunque ahora sea una imagen: el
                 nombre sigue llegando a Google y a los lectores de pantalla
                 por el aria-label del Logo (accessible name computation lo
@@ -75,17 +75,23 @@ export function Hero() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="mt-7 max-w-lg text-[17px] leading-relaxed text-[var(--text-dim)]"
+            className="mt-7 max-w-lg text-justify text-[17px] leading-relaxed text-[var(--text-dim)]"
           >
             Un trail costero por Cantabria, entre acantilados y pinares, hasta el mirador
             de Monte Picota, con la ría de Mogro abriéndose debajo.
           </motion.p>
+        </div>
 
+        {/* CTA y estadísticas van juntos como grupo: apilados y centrados en
+            móvil/tablet, uno al lado del otro (separados por el borde
+            izquierdo del dl) en escritorio — nunca cada uno centrado por su
+            cuenta en su propia fila ancha. */}
+        <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-10">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="mt-9 flex flex-wrap items-center gap-4"
+            className="flex flex-wrap items-center justify-center gap-4"
           >
             <a
               id="inscripcion"
@@ -101,24 +107,24 @@ export function Hero() {
               Ver el recorrido ↓
             </a>
           </motion.div>
-        </div>
 
-        <dl className="grid grid-cols-3 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-8 lg:min-w-[280px] lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
-          <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Distancia</dt>
-            <dd className="whitespace-nowrap text-lg sm:text-2xl">
-              {(routeStats.distanceM / 1000).toFixed(1)} km
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Desnivel+</dt>
-            <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.gainM} m</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Cota máx.</dt>
-            <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.maxEle} m</dd>
-          </div>
-        </dl>
+          <dl className="grid grid-cols-3 gap-x-8 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-12 lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Distancia</dt>
+              <dd className="whitespace-nowrap text-lg sm:text-2xl">
+                {(routeStats.distanceM / 1000).toFixed(1)} km
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Desnivel+</dt>
+              <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.gainM} m</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wider text-[var(--sea)]">Cota máx.</dt>
+              <dd className="whitespace-nowrap text-lg sm:text-2xl">{routeStats.maxEle} m</dd>
+            </div>
+          </dl>
+        </div>
       </motion.div>
 
       {/* position: fixed, no en flujo — con height:auto empujaba el resto
