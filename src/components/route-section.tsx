@@ -320,7 +320,7 @@ function ModalityToggle({
               : "bg-[var(--paper-raised)] text-[var(--text-dim)] hover:text-[var(--ink)]"
           }`}
         >
-          {modality === "trekking" ? "Trekking" : "Andarines"}
+          {modality === "trekking" ? "Trail" : "Andarines"}
         </button>
       ))}
     </div>
@@ -669,7 +669,7 @@ export function RouteSection() {
                   track={routeTrack}
                   stats={routeStats}
                   waypoints={waypoints}
-                  ariaLabel="Mapa por satélite de la modalidad Trekking: bucle entre Costa Quebrada, los pinares de Liencres, Monte Picota y Monte Tolío"
+                  ariaLabel="Mapa por satélite de la modalidad Trail: bucle entre Costa Quebrada, los pinares de Liencres, Monte Picota y Monte Tolío"
                   drawProgress={drawProgress}
                   hoveredIndex={hoveredTrekking}
                   onHoverIndex={setHoveredTrekking}

@@ -10,7 +10,7 @@ export const RACE_DATE = new Date("2027-04-24T00:00:00Z");
 export const REGISTRATION_DEADLINE = new Date("2027-04-20T21:59:59Z");
 
 export const MODALITIES = {
-  trekking: { label: "Trekking", priceCents: 2000 },
+  trekking: { label: "Trail", priceCents: 2000 },
   andarines: { label: "Andarines", priceCents: 1000 },
 } as const;
 
