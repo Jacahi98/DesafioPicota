@@ -583,21 +583,50 @@ export function RouteSection() {
                     <dt className="text-[10px] uppercase tracking-wider text-[var(--sea)]">
                       Distancia
                     </dt>
-                    <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
-                      <LiveDistance key={activeModality} drawProgress={drawProgress} stats={activeStats} />
+                    {/* Mismo patrón que AnimatedStat (Cota máx.) más abajo:
+                        el key en el motion.span, no en LiveDistance —
+                        AnimatePresence necesita el key en su hijo directo
+                        para animar la salida/entrada, si vive más adentro
+                        React simplemente remonta sin transición, que es
+                        justo el salto seco que había antes aquí (Distancia y
+                        Desnivel+ nunca tuvieron el cruce suave que Cota máx.
+                        sí tiene desde que existe el comparador). LiveDistance
+                        conserva su propio remonte real — key lo sigue
+                        forzando, solo que ahora un nivel más arriba — así
+                        que arranca en el valor correcto de la modalidad
+                        nueva sin lógica de reset añadida. */}
+                    <dd className="relative text-sm text-[var(--ink)] sm:text-xl">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={activeModality}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap"
+                        >
+                          <LiveDistance drawProgress={drawProgress} stats={activeStats} />
+                        </motion.span>
+                      </AnimatePresence>
                     </dd>
                   </div>
                   <div className="min-w-0">
                     <dt className="text-[10px] uppercase tracking-wider text-[var(--sea)]">
                       Desnivel+
                     </dt>
-                    <dd className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap text-sm text-[var(--ink)] sm:text-xl">
-                      <LiveGain
-                        key={activeModality}
-                        drawProgress={drawProgress}
-                        stats={activeStats}
-                        progress={activeProgress}
-                      />
+                    <dd className="relative text-sm text-[var(--ink)] sm:text-xl">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={activeModality}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="flex flex-nowrap items-baseline gap-x-1 whitespace-nowrap"
+                        >
+                          <LiveGain drawProgress={drawProgress} stats={activeStats} progress={activeProgress} />
+                        </motion.span>
+                      </AnimatePresence>
                     </dd>
                   </div>
                   <div className="min-w-0">

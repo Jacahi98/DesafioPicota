@@ -116,6 +116,44 @@ h3 {
   display: block;
 }
 
+/* Logo claro/oscuro (Logo, core/logo.tsx): antes eran dos <Image> de
+   next/image, una ocultada con .icon-light/.icon-dark (display:none) — pero
+   display:none no evita la descarga de un <img> con src ya puesto, así que
+   el logo se bajaba DOBLE en cada sitio donde aparece (header, hero, footer)
+   pese a que solo se ve uno. Aquí es un único elemento sin <img> real: el
+   logo entra como background-image, y con eso los motores de renderizado sí
+   son lo bastante listos como para no descargar la imagen de una regla que
+   no gana la cascada — solo se pide la red la que de verdad aplica. Dos
+   tamaños (sm para header/footer, lg para el logo grande del hero) en vez de
+   reutilizar uno solo: a 840px de ancho el pequeño no necesita nada de ese
+   tamaño, y a la inversa el hero se vería borroso con el pequeño. */
+.logo-mark-sm,
+.logo-mark-lg {
+  background-size: contain;
+  background-position: left center;
+  background-repeat: no-repeat;
+}
+.logo-mark-sm {
+  background-image: url("/logo-wordmark-light-sm.webp");
+}
+.logo-mark-lg {
+  background-image: url("/logo-wordmark-light.webp");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-mark-sm {
+    background-image: url("/logo-wordmark-dark-sm.webp");
+  }
+  :root:not([data-theme="light"]) .logo-mark-lg {
+    background-image: url("/logo-wordmark-dark.webp");
+  }
+}
+:root[data-theme="dark"] .logo-mark-sm {
+  background-image: url("/logo-wordmark-dark-sm.webp");
+}
+:root[data-theme="dark"] .logo-mark-lg {
+  background-image: url("/logo-wordmark-dark.webp");
+}
+
 /* Título+stats y mapa/perfil de "El recorrido" viven en UNA sola caja
    sticky (.route-pin-sticky), no dos separadas: dos sticky independientes
    con alturas distintas se liberan del scroll en instantes distintos, y el

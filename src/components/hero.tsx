@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Eye, X } from "lucide-react";
 import { routeStats } from "@/data/route-track";
+import { Logo } from "@/components/core/logo";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -44,9 +44,8 @@ export function Hero() {
           <div className="relative flex items-start gap-3">
             {/* El h1 se mantiene como h1 aunque ahora sea una imagen: el
                 nombre sigue llegando a Google y a los lectores de pantalla
-                por el alt, que es el texto que antes estaba escrito aquí.
-                Dos ficheros (claro/oscuro) alternados por .icon-light/
-                .icon-dark, igual que en header y footer. */}
+                por el aria-label del Logo (accessible name computation lo
+                sube al propio h1, que no tiene texto propio). */}
             <motion.h1
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -55,22 +54,7 @@ export function Hero() {
               onMouseLeave={() => setPhotoOpen(false)}
               className="w-[68vw] max-w-[300px] sm:w-[340px] sm:max-w-none lg:w-[420px]"
             >
-              <Image
-                src="/logo-wordmark-light.png"
-                alt="Desafío Picota · Trail Run"
-                width={790}
-                height={525}
-                priority
-                className="icon-light h-auto w-full"
-              />
-              <Image
-                src="/logo-wordmark-dark.png"
-                alt="Desafío Picota · Trail Run"
-                width={790}
-                height={525}
-                priority
-                className="icon-dark h-auto w-full"
-              />
+              <Logo size="lg" label="Desafío Picota · Trail Run" className="w-full" />
             </motion.h1>
 
             {/* En escritorio el hover sobre las letras del título ya revela

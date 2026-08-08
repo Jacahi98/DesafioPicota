@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { APP_VERSION } from "@/lib/version";
 import { InfiniteSlider } from "@/components/core/infinite-slider";
 import { ProgressiveBlur } from "@/components/core/progressive-blur";
+import { Logo } from "@/components/core/logo";
 
 // Placeholders — sustituir por los logos reales de los colaboradores
 // cuando se confirmen.
@@ -63,20 +63,7 @@ export function Footer() {
             el ancho automático. En sm: el flex pasa a fila y ahí el eje
             transversal ya es la altura, así que items-center es correcto. */}
         <div className="flex flex-col items-start gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <Image
-            src="/logo-wordmark-light.png"
-            alt="Desafío Picota Trail Run"
-            width={790}
-            height={525}
-            className="icon-light h-8 w-auto"
-          />
-          <Image
-            src="/logo-wordmark-dark.png"
-            alt="Desafío Picota Trail Run"
-            width={790}
-            height={525}
-            className="icon-dark h-8 w-auto"
-          />
+          <Logo className="h-8" />
           <p className="text-sm text-[var(--text-faint)]">Liencres, Cantabria</p>
         </div>
         <p className="mt-6 font-mono text-[10px] text-[var(--text-faint)] opacity-60">v{APP_VERSION}</p>
