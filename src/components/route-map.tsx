@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Disclosure, DisclosureTrigger, DisclosureContent } from "@/components/core/disclosure";
@@ -318,6 +318,25 @@ export function RouteMap({
   const summitOpacity = useTransform(drawProgress, [summitFraction, summitFraction + 0.01], [0, 1]);
   const dashOffset = useTransform(drawProgress, (v) => pathTotalLength - pixelLengthAtFraction(v));
 
+  // A distancia 0% el trazado real (motion.path de abajo) está totalmente
+  // oculto por su propio dashOffset — no hay nada de "línea" visible salvo
+  // el punto de salida. Este glow pinta el recorrido ENTERO con un pulso,
+  // montado solo mientras drawProgress ronda el 0%, a modo de pista de "aquí
+  // está el recorrido completo, baja para dibujarlo" — se desmonta en cuanto
+  // el usuario empieza a avanzar de verdad, no queda residual encima del
+  // trazado real.
+  const [nearStart, setNearStart] = useState(true);
+  useEffect(() => {
+    const unsubscribe = drawProgress.on("change", (v) => setNearStart(v < 0.02));
+    return unsubscribe;
+  }, [drawProgress]);
+  // El comparador Trekking/Andarines monta DOS copias completas de este
+  // componente a la vez (superpuestas con clip-path) — un id fijo aquí
+  // duplicaría el id en el documento. useId() da uno estable y único por
+  // instancia (verificado: sin esto, "route-glow-blur" aparecía 2 veces en
+  // el DOM al mismo tiempo).
+  const glowFilterId = `route-glow-blur-${useId()}`;
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [aspect, setAspect] = useState(VW / VH);
@@ -500,7 +519,15 @@ export function RouteMap({
           ref={svgRef}
           viewBox={`${MARGIN_X} ${MARGIN_Y} ${ROUTE_VW} ${ROUTE_VH}`}
           className="h-full w-full"
-          preserveAspectRatio="xMidYMid meet"
+          // "slice" y no "meet": con "meet" el propio <svg> —no solo la
+          // imagen de satélite de dentro— se ajustaba manteniendo su
+          // proporción interna cuando la tarjeta era mucho más apaisada de
+          // lo que el visor podía cubrir sin recortar el trazado, dejando
+          // franjas vacías a los lados (visto en una tarjeta 616x195,
+          // ratio 3.16, contra un visor tope de ~2.3). Con "slice" el mapa
+          // llena SIEMPRE la tarjeta entera; en esos casos extremos puede
+          // perderse algo de encuadre por los lados en vez de dejar banda.
+          preserveAspectRatio="xMidYMid slice"
           role="img"
           aria-label={ariaLabel}
         >
@@ -513,6 +540,31 @@ export function RouteMap({
             preserveAspectRatio="xMidYMid slice"
           />
           <rect x="0" y="0" width={VW} height={VH} fill="#0a1108" opacity="0.12" />
+
+          {nearStart && (
+            <>
+              <defs>
+                <filter id={glowFilterId} x="-60%" y="-60%" width="220%" height="220%">
+                  <feGaussianBlur stdDeviation="3.2" />
+                </filter>
+              </defs>
+              {/* Recorrido entero con resplandor pulsante — ver el porqué en
+                  el comentario junto a nearStart, más arriba. Sin
+                  strokeDasharray: se pinta el pathD completo, no un tramo. */}
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke="var(--accent-rose)"
+                strokeWidth="9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter={`url(#${glowFilterId})`}
+                initial={{ opacity: 0.25 }}
+                animate={{ opacity: [0.25, 0.85, 0.25] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </>
+          )}
 
           {/* Casing oscuro para que el trazado se lea sobre cualquier tono de la foto */}
           <path
