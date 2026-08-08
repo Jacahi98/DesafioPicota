@@ -13,9 +13,9 @@ import { BorderTrail } from "@/components/core/border-trail";
 const SPRING: Transition = { type: "spring", bounce: 0.55, duration: 1 };
 
 const SECTIONS = [
-  { href: "#top", label: "Inicio", icon: Home },
-  { href: "#recorrido", label: "Recorrido", icon: Route },
-  { href: "#inscripcion", label: "Inscripción", icon: UserPlus },
+  { href: "/#top", label: "Inicio", icon: Home },
+  { href: "/#recorrido", label: "Recorrido", icon: Route },
+  { href: "/inscripcion", label: "Inscripción", icon: UserPlus },
 ];
 
 export function SectionsMenu() {

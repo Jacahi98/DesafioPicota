@@ -87,12 +87,13 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.25 }}
             className="mt-9 flex flex-wrap items-center gap-4"
           >
-            <span
+            <a
               id="inscripcion"
-              className="inline-flex items-center gap-2 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-2.5 text-sm font-medium text-[var(--text-dim)]"
+              href="/inscripcion"
+              className="inline-flex items-center gap-2 rounded-sm border border-[var(--pine)] bg-[var(--pine)] px-4 py-2.5 text-sm font-semibold text-[var(--pine-ink)] transition-opacity hover:opacity-90"
             >
-              Inscripciones · próximamente
-            </span>
+              Inscríbete · 24 abril 2027
+            </a>
             <a
               href="#recorrido"
               className="text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--accent-rose)]"

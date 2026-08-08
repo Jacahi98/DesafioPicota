@@ -64,7 +64,15 @@ export function Footer() {
             transversal ya es la altura, así que items-center es correcto. */}
         <div className="flex flex-col items-start gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
           <Logo className="h-8" />
-          <p className="text-sm text-[var(--text-faint)]">Liencres, Cantabria</p>
+          <div className="flex items-center gap-5">
+            <a
+              href="/privacidad"
+              className="text-sm text-[var(--text-faint)] underline-offset-2 hover:text-[var(--text-dim)] hover:underline"
+            >
+              Privacidad
+            </a>
+            <p className="text-sm text-[var(--text-faint)]">Liencres, Cantabria</p>
+          </div>
         </div>
         <p className="mt-6 font-mono text-[10px] text-[var(--text-faint)] opacity-60">v{APP_VERSION}</p>
       </div>
