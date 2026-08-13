@@ -4,6 +4,19 @@ export const ADMIN_COOKIE = "picota_admin_session";
 export const PATTERN_GATE_COOKIE = "picota_pattern_gate";
 export const PATTERN_MIN_DOTS = 4;
 
+// La ruta del panel ya no es un secreto de por vida como antes (el repo es
+// público, así que cualquier nombre de carpeta se ve en el código) — ahora
+// es un valor que solo existe en la variable de entorno, nunca commiteado.
+// proxy.ts reescribe esta ruta hacia /panel; visitar /panel directamente
+// (sin pasar por aquí) da 404, ver ADMIN_PROXY_HEADER más abajo.
+export const ADMIN_PATH = process.env.ADMIN_PATH_SECRET ?? "";
+
+// Cabecera que proxy.ts añade SOLO cuando la petición llegó por ADMIN_PATH
+// -- panel/layout.tsx exige que esté presente o devuelve 404. Un cliente no
+// puede falsificarla: proxy.ts la borra de la petición entrante antes de
+// decidir si la vuelve a poner.
+export const ADMIN_PROXY_HEADER = "x-picota-admin-proxied";
+
 // Contraseñas nombradas por persona (no cuentas de verdad, pero cada una
 // identifica a quién pertenece) — así "quién marcó esto como pagado" tiene
 // respuesta, y se puede cambiar la contraseña de uno sin tocar la del otro.

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { PatternLock } from "@/components/pattern-lock";
-import { setPatternAction } from "@/app/sendero-f74ad7/actions";
+import { setPatternAction } from "@/app/panel/actions";
 
 export function PatternSetup({
   configured,

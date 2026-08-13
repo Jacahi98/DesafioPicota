@@ -296,7 +296,8 @@ h3 {
   }
 }
 
-/* Panel de administración (sendero-f74ad7): la web pública usa la paleta
+/* Panel de administración (/panel, solo alcanzable vía proxy.ts + la ruta
+   secreta en ADMIN_PATH_SECRET): la web pública usa la paleta
    granate/rosa/teal de arriba, pero esta sección es donde Javier y Carlos
    "operan" el sitio — se le da su propia identidad de terminal en vez de
    heredar la del público. Reasigna los MISMOS tokens (--pine, --paper-

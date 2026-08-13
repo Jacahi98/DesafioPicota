@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { PatternLock } from "@/components/pattern-lock";
 import { TerminalBoot } from "@/components/terminal-boot";
-import { verifyPatternAction } from "@/app/sendero-f74ad7/actions";
+import { verifyPatternAction } from "@/app/panel/actions";
 
 const BOOT_LINES = ["conectando con desafio-picota.vercel.app...", "acceso restringido — se requiere patrón"];
 

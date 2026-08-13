@@ -5,9 +5,9 @@ import { getDb } from "@/db";
 import { registrations, adminPatternConfig } from "@/db/schema";
 import { isValidSession, isValidPatternGate, adminLabel, ADMIN_COOKIE, PATTERN_GATE_COOKIE } from "@/lib/admin-auth";
 import { MODALITIES, formatPrice } from "@/lib/registration";
-import { loginAction, logoutAction, setPaymentStatusAction } from "@/app/sendero-f74ad7/actions";
-import { PatternGate } from "@/app/sendero-f74ad7/pattern-gate";
-import { PatternSetup } from "@/app/sendero-f74ad7/pattern-setup";
+import { loginAction, logoutAction, setPaymentStatusAction } from "@/app/panel/actions";
+import { PatternGate } from "@/app/panel/pattern-gate";
+import { PatternSetup } from "@/app/panel/pattern-setup";
 import { TerminalBoot } from "@/components/terminal-boot";
 
 export const metadata: Metadata = {

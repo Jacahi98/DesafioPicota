@@ -12,6 +12,7 @@ import {
   isValidSession,
   adminLabel,
   ADMIN_COOKIE,
+  ADMIN_PATH,
   PATTERN_GATE_COOKIE,
   PATTERN_MIN_DOTS,
   isValidPatternGate,
@@ -20,6 +21,8 @@ import {
   verifyPatternHash,
   newPatternSalt,
 } from "@/lib/admin-auth";
+
+const ADMIN_URL = `/${ADMIN_PATH}`;
 
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -65,7 +68,7 @@ export async function verifyPatternAction(formData: FormData) {
   const ip = await getClientIp();
 
   if ((await recentFailedAttempts(ip)) >= RATE_LIMIT_MAX_ATTEMPTS) {
-    redirect("/sendero-f74ad7?error=ratelimited");
+    redirect(`${ADMIN_URL}?error=ratelimited`);
   }
 
   const config = await getPatternConfig();
@@ -73,7 +76,7 @@ export async function verifyPatternAction(formData: FormData) {
   // llegar aquí (la página no muestra el candado en ese caso), pero por si
   // acaso deja pasar en vez de bloquear el arranque inicial.
   if (!config?.patternHash || !config.patternSalt) {
-    redirect("/sendero-f74ad7");
+    redirect(ADMIN_URL);
   }
 
   const raw = String(formData.get("sequence") ?? "");
@@ -82,7 +85,7 @@ export async function verifyPatternAction(formData: FormData) {
 
   if (!valid) {
     await getDb().insert(adminLoginAttempts).values({ ip });
-    redirect("/sendero-f74ad7?error=pattern");
+    redirect(`${ADMIN_URL}?error=pattern`);
   }
 
   // Dura solo lo justo para sobrevivir a la redirección que viene a
@@ -95,17 +98,17 @@ export async function verifyPatternAction(formData: FormData) {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
-    path: "/sendero-f74ad7",
+    path: ADMIN_URL,
     maxAge: 20,
   });
-  redirect("/sendero-f74ad7");
+  redirect(ADMIN_URL);
 }
 
 export async function loginAction(formData: FormData) {
   const ip = await getClientIp();
 
   if ((await recentFailedAttempts(ip)) >= RATE_LIMIT_MAX_ATTEMPTS) {
-    redirect("/sendero-f74ad7?error=ratelimited");
+    redirect(`${ADMIN_URL}?error=ratelimited`);
   }
 
   // El patrón, si está configurado, es la primera puerta — se exige aquí
@@ -115,7 +118,7 @@ export async function loginAction(formData: FormData) {
   if (config?.patternHash) {
     const cookieStore = await cookies();
     if (!isValidPatternGate(cookieStore.get(PATTERN_GATE_COOKIE)?.value)) {
-      redirect("/sendero-f74ad7");
+      redirect(ADMIN_URL);
     }
   }
 
@@ -124,7 +127,7 @@ export async function loginAction(formData: FormData) {
 
   if (!adminId) {
     await getDb().insert(adminLoginAttempts).values({ ip });
-    redirect("/sendero-f74ad7?error=1");
+    redirect(`${ADMIN_URL}?error=1`);
   }
 
   const cookieStore = await cookies();
@@ -132,10 +135,10 @@ export async function loginAction(formData: FormData) {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
-    path: "/sendero-f74ad7",
+    path: ADMIN_URL,
     maxAge: 60 * 60 * 24 * 30,
   });
-  redirect("/sendero-f74ad7");
+  redirect(ADMIN_URL);
 }
 
 export async function logoutAction() {
@@ -145,11 +148,11 @@ export async function logoutAction() {
   // El path tiene que coincidir EXACTO con el usado al crearlas (Next.js
   // solo borra una cookie si el path declarado aquí es el mismo con el que
   // se creó) — sin esto, delete(nombre) a secas apunta a path "/" por
-  // defecto y no coincide con "/sendero-f74ad7", así que no borraba nada.
+  // defecto y no coincide con ADMIN_URL, así que no borraba nada.
   const cookieStore = await cookies();
-  cookieStore.delete({ name: ADMIN_COOKIE, path: "/sendero-f74ad7" });
-  cookieStore.delete({ name: PATTERN_GATE_COOKIE, path: "/sendero-f74ad7" });
-  redirect("/sendero-f74ad7");
+  cookieStore.delete({ name: ADMIN_COOKIE, path: ADMIN_URL });
+  cookieStore.delete({ name: PATTERN_GATE_COOKIE, path: ADMIN_URL });
+  redirect(ADMIN_URL);
 }
 
 async function requireAdmin() {
@@ -167,7 +170,7 @@ export async function setPaymentStatusAction(formData: FormData) {
     .update(registrations)
     .set({ paymentStatus: status, paymentUpdatedBy: adminLabel(adminId), paymentUpdatedAt: new Date() })
     .where(eq(registrations.id, id));
-  revalidatePath("/sendero-f74ad7");
+  revalidatePath(ADMIN_URL);
 }
 
 // Solo alcanzable ya autenticado por contraseña — así nadie puede fijar el
@@ -198,5 +201,5 @@ export async function setPatternAction(formData: FormData) {
       set: { patternHash: hash, patternSalt: salt, updatedBy: adminLabel(adminId), updatedAt: new Date() },
     });
 
-  revalidatePath("/sendero-f74ad7");
+  revalidatePath(ADMIN_URL);
 }
