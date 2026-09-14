@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import pkg from "./package.json";
 
 // script-src y style-src necesitan 'unsafe-inline'. Se probó primero con un
 // hash SHA-256 solo para el <script> del detector de tema (el único inline
@@ -59,6 +60,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // La version se publica desde package.json, que es la unica fuente de
+  // verdad: antes estaba ademas escrita a mano en src/lib/version.ts y las
+  // dos se desincronizaban (el package-lock llego a quedarse en 0.5.6 con el
+  // resto en 0.6.4). Al ir por env se sustituye en tiempo de build, sin
+  // meter package.json entero en el bundle del cliente.
+  env: { NEXT_PUBLIC_APP_VERSION: pkg.version },
   async headers() {
     return [
       {

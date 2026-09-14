@@ -3,21 +3,49 @@ import { InfiniteSlider } from "@/components/core/infinite-slider";
 import { ProgressiveBlur } from "@/components/core/progressive-blur";
 import { Logo } from "@/components/core/logo";
 
-// Placeholders — sustituir por los logos reales de los colaboradores
-// cuando se confirmen.
+// Logos cedidos por los colaboradores, recortados y pasados a WebP con
+// transparencia: el turquesa de Piélagos se lee igual sobre el tema claro y
+// sobre el oscuro, así que no hace falta una variante por tema.
 const collaborators = [
-  "Colaborador 01",
-  "Colaborador 02",
-  "Colaborador 03",
-  "Colaborador 04",
-  "Colaborador 05",
-  "Colaborador 06",
+  {
+    name: "Ayuntamiento de Piélagos",
+    src: "/logo-ayto-pielagos.webp",
+    width: 315,
+    height: 160,
+  },
+  {
+    name: "Pasa x Piélagos",
+    src: "/logo-pasa-x-pielagos.webp",
+    width: 251,
+    height: 160,
+  },
 ];
 
-function CollaboratorBadge({ label }: { label: string }) {
+// InfiniteSlider pinta {children}{children} y desplaza media tira, asi que
+// UNA copia tiene que ser ya mas ancha que la pantalla o aparece un hueco
+// vacio (es lo que pasaba con solo dos logos: antes habia seis etiquetas de
+// texto y llegaban de sobra). Se repite la pareja hasta cubrir un monitor
+// ancho; los ficheros son los mismos, o sea que el navegador los cachea y no
+// hay descargas de mas.
+const REPETITIONS = 10;
+
+const collaboratorStrip = Array.from({ length: REPETITIONS }, () => collaborators).flat();
+
+type Collaborator = (typeof collaborators)[number];
+
+function CollaboratorBadge({ logo }: { logo: Collaborator }) {
   return (
-    <div className="flex h-12 shrink-0 items-center justify-center rounded-sm border border-[var(--border)] px-6 font-mono text-[11px] uppercase tracking-wider text-[var(--text-faint)] opacity-70 grayscale transition-opacity hover:opacity-100 hover:grayscale-0">
-      {label}
+    <div className="flex h-16 shrink-0 items-center justify-center rounded-sm border border-[var(--border)] bg-[var(--paper)] px-8 transition-colors hover:border-[var(--sea)]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={logo.src}
+        alt={logo.name}
+        width={logo.width}
+        height={logo.height}
+        loading="lazy"
+        decoding="async"
+        className="h-9 w-auto"
+      />
     </div>
   );
 }
@@ -37,8 +65,8 @@ export function Footer() {
           creciente, no un simple fade de opacidad. */}
       <div className="relative mb-10">
         <InfiniteSlider gap={16} speed={28} speedOnHover={8}>
-          {collaborators.map((label) => (
-            <CollaboratorBadge key={label} label={label} />
+          {collaboratorStrip.map((logo, i) => (
+            <CollaboratorBadge key={`${logo.src}-${i}`} logo={logo} />
           ))}
         </InfiniteSlider>
         {/* La posición (absolute inset-y-0 ...) va en un envoltorio aparte:

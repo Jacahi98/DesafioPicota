@@ -47,7 +47,7 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Vista desde Monte Picota: la ría de Mogro abriéndose en herradura sobre el Cantábrico",
+        alt: "Logotipo de Desafío Picota Trail Run",
       },
     ],
   },
