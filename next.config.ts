@@ -60,6 +60,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Solo afecta al servidor de desarrollo (Next.js lo ignora en produccion).
+  // Sin esto, abrir el dev server por 127.0.0.1 en vez de localhost hace que
+  // Next.js bloquee como cross-origin las peticiones a sus propios chunks de
+  // Turbopack (503), dejando la pagina sin hidratar.
+  allowedDevOrigins: ["127.0.0.1"],
   // La version se publica desde package.json, que es la unica fuente de
   // verdad: antes estaba ademas escrita a mano en src/lib/version.ts y las
   // dos se desincronizaban (el package-lock llego a quedarse en 0.5.6 con el

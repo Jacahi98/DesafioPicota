@@ -57,7 +57,7 @@ function confirmationHtml(params: { firstName: string; modality: Modality; payme
                   Desafío Picota
                 </p>
                 <p style="margin:0 0 24px 0;font:600 10px/1 -apple-system,Helvetica,Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:${COLOR.textFaint};">
-                  Trail run · Liencres, Cantabria
+                  Speed trail · Liencres, Cantabria
                 </p>
                 <h1 style="margin:0 0 12px 0;font:700 22px/1.25 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
                   Inscripción recibida

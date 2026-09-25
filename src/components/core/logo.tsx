@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // por role="img" + aria-label en vez de alt.
 export function Logo({
   size = "sm",
-  label = "Desafío Picota · Trail Run",
+  label = "Desafío Picota · Speed Trail",
   className,
 }: {
   size?: "sm" | "lg";

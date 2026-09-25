@@ -50,7 +50,7 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.05 }}
               className="w-[68vw] max-w-[300px] sm:w-[340px] sm:max-w-none lg:w-[420px]"
             >
-              <Logo size="lg" label="Desafío Picota · Trail Run" className="w-full" />
+              <Logo size="lg" label="Desafío Picota · Speed Trail" className="w-full" />
             </motion.h1>
           </div>
 
