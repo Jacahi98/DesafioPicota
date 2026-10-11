@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, uuid, date, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, uuid, date, pgEnum, boolean } from "drizzle-orm/pg-core";
 
 export const modalityEnum = pgEnum("modality", ["trekking", "andarines"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "confirmed", "cancelled"]);
@@ -15,6 +15,12 @@ export const registrations = pgTable("registrations", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   club: text("club"),
+
+  // Licencia federativa: el precio depende de ello. licenseVerified arranca
+  // en false y lo pone a true quien revise la licencia (de momento a mano).
+  federated: boolean("federated").notNull().default(false),
+  licenseNumber: text("license_number"),
+  licenseVerified: boolean("license_verified").notNull().default(false),
 
   priceCents: integer("price_cents").notNull(),
   paymentReference: text("payment_reference").notNull().unique(),

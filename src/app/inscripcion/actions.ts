@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { registrations } from "@/db/schema";
 import {
   registrationSchema,
-  MODALITIES,
+  priceCents,
   isRegistrationOpen,
   generatePaymentReference,
 } from "@/lib/registration";
@@ -34,6 +34,8 @@ export async function registerAction(
     email: formData.get("email"),
     phone: formData.get("phone"),
     club: formData.get("club"),
+    federated: formData.get("federated") === "yes",
+    licenseNumber: formData.get("licenseNumber") ?? "",
     privacyConsent: formData.get("privacyConsent") === "on",
   };
 
@@ -64,7 +66,9 @@ export async function registerAction(
         email: data.email,
         phone: data.phone,
         club: data.club || null,
-        priceCents: MODALITIES[data.modality].priceCents,
+        federated: data.federated,
+        licenseNumber: data.federated ? data.licenseNumber || null : null,
+        priceCents: priceCents(data.modality, data.federated),
         paymentReference: reference,
         privacyConsentAt: new Date(),
       });
@@ -81,6 +85,7 @@ export async function registerAction(
     to: data.email,
     firstName: data.firstName,
     modality: data.modality,
+    federated: data.federated,
     paymentReference: reference,
   });
 

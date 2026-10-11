@@ -136,6 +136,7 @@ export default async function AdminPage({
                 "email",
                 "teléfono",
                 "club",
+                "federado",
                 "importe",
                 "referencia",
                 "estado",
@@ -167,6 +168,16 @@ export default async function AdminPage({
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.email}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.phone}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.club || "—"}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-dim)]">
+                  {r.federated ? (
+                    <>
+                      <span className="text-[var(--ink)]">Sí · {r.licenseNumber}</span>
+                      {!r.licenseVerified && <span className="ml-2 text-[var(--accent-rose)]">sin verificar</span>}
+                    </>
+                  ) : (
+                    "No"
+                  )}
+                </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--ink)]">{formatPrice(r.priceCents)}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--ink)]">{r.paymentReference}</td>
                 <td className={`whitespace-nowrap px-3 py-2.5 font-medium ${STATUS_COLOR[r.paymentStatus]}`}>

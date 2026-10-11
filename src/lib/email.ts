@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { MODALITIES, BANK_TRANSFER, REGISTRATION_DEADLINE, formatPrice, type Modality } from "@/lib/registration";
+import { MODALITIES, BANK_TRANSFER, REGISTRATION_DEADLINE, formatPrice, priceCents, type Modality } from "@/lib/registration";
 
 let _resend: Resend | null = null;
 function getResend() {
@@ -104,9 +104,10 @@ export async function sendConfirmationEmail(params: {
   to: string;
   firstName: string;
   modality: Modality;
+  federated: boolean;
   paymentReference: string;
 }) {
-  const price = formatPrice(MODALITIES[params.modality].priceCents);
+  const price = formatPrice(priceCents(params.modality, params.federated));
 
   // Sin dominio propio verificado en Resend, la cuenta está en modo sandbox:
   // solo se pueden enviar emails a la dirección del propio titular de la

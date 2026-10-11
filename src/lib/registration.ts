@@ -10,11 +10,41 @@ export const RACE_DATE = new Date("2027-04-24T00:00:00Z");
 export const REGISTRATION_DEADLINE = new Date("2027-04-20T21:59:59Z");
 
 export const MODALITIES = {
-  trekking: { label: "Trail", priceCents: 2000 },
-  andarines: { label: "Andarines", priceCents: 1000 },
+  trekking: { label: "Trail" },
+  andarines: { label: "Andarines" },
 } as const;
 
 export type Modality = keyof typeof MODALITIES;
+
+// Precio por modalidad y por si el corredor tiene licencia federativa. Es la
+// ÚNICA fuente de precios: el servidor lo recalcula al guardar la inscripción
+// (registerAction) y nunca se fía de un importe que venga del navegador.
+export const PRICES_CENTS = {
+  trekking: { federated: 1800, standard: 2000 },
+  andarines: { federated: 1300, standard: 1500 },
+} as const;
+
+export function priceCents(modality: Modality, federated: boolean): number {
+  return PRICES_CENTS[modality][federated ? "federated" : "standard"];
+}
+
+// Decide si el nº de licencia federativa que escribe el corredor tiene un
+// formato aceptable. Solo mira el FORMATO (no puede saber si la licencia
+// existe de verdad: eso se revisa a mano en el panel, "sin verificar").
+// Se usa en el formulario (paso 3) y se vuelve a comprobar en el servidor.
+//
+// Deliberadamente permisiva: no se conoce el formato exacto de cada
+// federación y una regla estricta rechazaría a federados de verdad. Pide
+// solo lo mínimo que cualquier licencia real cumple: 4-20 caracteres
+// (letras, números, guion, barra, punto o espacio), al menos un dígito y no
+// ser un mismo carácter repetido ("0000", "aaaa").
+export function licenseNumberIsValid(raw: string): boolean {
+  const value = raw.trim();
+  if (!/^[A-Za-z0-9\-\/. ]{4,20}$/.test(value)) return false;
+  if (!/[0-9]/.test(value)) return false;
+  if (new Set(value.replace(/[^A-Za-z0-9]/g, "").toLowerCase()).size < 2) return false;
+  return true;
+}
 
 export const BANK_TRANSFER = {
   // PLACEHOLDER — sustituir por el IBAN real antes de abrir inscripciones.
@@ -25,8 +55,8 @@ export const BANK_TRANSFER = {
 // PLACEHOLDER — responsable del tratamiento (RGPD), sustituir por la
 // entidad/NIF real antes de abrir inscripciones.
 export const ORGANIZER = {
-  legalName: "Carlos Castañeda (placeholder — pendiente de entidad/NIF definitivos)",
-  nif: "NIF pendiente",
+  legalName: "Club Deportivo Elemental A Vista SADC",
+  nif: "G05724489",
 };
 
 // Edad mínima calculada el día de la carrera, no hoy: alguien que hoy tiene
@@ -39,6 +69,7 @@ function ageAt(birthDate: Date, at: Date): number {
   }
   return age;
 }
+
 
 export const registrationSchema = z.object({
   modality: z.enum(["trekking", "andarines"]),
@@ -59,7 +90,18 @@ export const registrationSchema = z.object({
     .trim()
     .regex(/^[679][0-9]{8}$/, "Teléfono no válido (9 dígitos)"),
   club: z.string().trim().max(100).optional().or(z.literal("")),
+  federated: z.boolean(),
+  licenseNumber: z.string().trim().max(30).optional().or(z.literal("")),
   privacyConsent: z.literal(true, { message: "Hay que aceptar la política de privacidad" }),
+}).superRefine((data, ctx) => {
+  // Federado => hace falta el nº de licencia, con un formato razonable.
+  if (data.federated && !licenseNumberIsValid(data.licenseNumber ?? "")) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["licenseNumber"],
+      message: data.licenseNumber ? "Número de licencia no válido" : "Falta el número de licencia",
+    });
+  }
 });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
