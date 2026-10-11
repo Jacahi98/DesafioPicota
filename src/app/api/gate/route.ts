@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
   if (!password || !verifyPassword(password)) {
     await db.insert(adminLoginAttempts).values({ ip: `gate:${ip}` });
-    return html(loginPage("Contraseña incorrecta."), 401);
+    return html(loginPage("Contraseña incorrecta. Esa cuesta aún no la has subido."), 401);
   }
 
   const token = issueToken();
