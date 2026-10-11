@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { SectionsMenu } from "@/components/sections-menu";
+import { SectionNav } from "@/components/section-nav";
 import { Logo } from "@/components/core/logo";
 
 export function Header() {
@@ -12,7 +12,7 @@ export function Header() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-          <SectionsMenu />
+          <SectionNav />
           <ThemeToggle />
         </div>
       </div>

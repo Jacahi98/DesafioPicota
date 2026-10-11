@@ -64,8 +64,14 @@ export const registrationSchema = z.object({
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
 
+// Interruptor general: las inscripciones aún no han abierto (previsiblemente
+// en 2027). Con esto en false la página muestra el aviso y registerAction
+// rechaza cualquier envío en el servidor, aunque alguien llame a la acción
+// directamente sin pasar por el formulario. Ponerlo en true al abrirlas.
+export const REGISTRATION_ENABLED = false;
+
 export function isRegistrationOpen(): boolean {
-  return new Date() < REGISTRATION_DEADLINE;
+  return REGISTRATION_ENABLED && new Date() < REGISTRATION_DEADLINE;
 }
 
 export function generatePaymentReference(): string {

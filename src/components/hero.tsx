@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { routeStats } from "@/data/route-track";
 import { Logo } from "@/components/core/logo";
+import { Countdown } from "@/components/countdown";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -74,21 +75,8 @@ export function Hero() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="flex flex-wrap items-center justify-center gap-4"
           >
-            <a
-              id="inscripcion"
-              href="/inscripcion"
-              className="inline-flex items-center gap-2 rounded-sm border border-[var(--pine)] bg-[var(--pine)] px-4 py-2.5 text-sm font-semibold text-[var(--pine-ink)] transition-opacity hover:opacity-90"
-            >
-              Inscríbete · 24 abril 2027
-            </a>
-            <a
-              href="#recorrido"
-              className="text-sm font-semibold text-[var(--pine)] transition-colors hover:text-[var(--accent-rose)]"
-            >
-              Ver el recorrido ↓
-            </a>
+            <Countdown />
           </motion.div>
 
           <dl className="grid grid-cols-3 gap-x-8 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-12 lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">

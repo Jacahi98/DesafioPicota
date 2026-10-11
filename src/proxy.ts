@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_PATH, ADMIN_PROXY_HEADER } from "@/lib/admin-auth";
+import { GATE_COOKIE, GATE_HEADERS, GATE_PATH, gateConfigured, loginPage, verifyToken } from "@/lib/site-gate";
 
 // Reescribe la ruta secreta (ADMIN_PATH_SECRET, solo en variables de
 // entorno, nunca en el repo) hacia /panel, y marca la petición como
@@ -9,6 +10,25 @@ import { ADMIN_PATH, ADMIN_PROXY_HEADER } from "@/lib/admin-auth";
 // desde el código público) no llega a ningún sitio.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // PUERTA DE CONTRASEÑA de toda la web (ver lib/site-gate.ts). Va la
+  // primera y cubre TODO: páginas, imágenes, JS estático y APIs. Lo único
+  // abierto es el propio formulario (/api/gate), que se protege solo.
+  // Sin configurar en producción => cerrado (503), nunca abierto.
+  if (pathname !== GATE_PATH) {
+    const configured = gateConfigured();
+    if (!configured && process.env.NODE_ENV === "production") {
+      return new NextResponse("Servicio no disponible", { status: 503, headers: GATE_HEADERS });
+    }
+    if (configured && !verifyToken(request.cookies.get(GATE_COOKIE)?.value)) {
+      // Peticiones que no son una página (APIs, imágenes, JS): 401 seco,
+      // sin enseñar nada. Las páginas reciben el formulario.
+      const wantsPage = request.method === "GET" && (request.headers.get("accept") ?? "").includes("text/html");
+      return wantsPage
+        ? new NextResponse(loginPage(), { status: 401, headers: { "Content-Type": "text/html; charset=utf-8", ...GATE_HEADERS } })
+        : new NextResponse("No autorizado", { status: 401, headers: GATE_HEADERS });
+    }
+  }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(ADMIN_PROXY_HEADER); // nunca fiarse de lo que mande el cliente
@@ -26,5 +46,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/:path*"],
 };
