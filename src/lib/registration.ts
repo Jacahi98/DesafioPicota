@@ -61,6 +61,11 @@ export const ORGANIZER = {
 
 // Edad mínima calculada el día de la carrera, no hoy: alguien que hoy tiene
 // 17 pero los cumple antes del 24 de abril de 2027 puede inscribirse.
+export const MIN_AGE = 16;
+export const ADULT_AGE = 18;
+// Documento descargable que firman padre/madre/tutor (ver docs/).
+export const GUARDIAN_AUTH_PATH = "/autorizacion-menores.pdf";
+
 function ageAt(birthDate: Date, at: Date): number {
   let age = at.getUTCFullYear() - birthDate.getUTCFullYear();
   const monthDiff = at.getUTCMonth() - birthDate.getUTCMonth();
@@ -68,6 +73,18 @@ function ageAt(birthDate: Date, at: Date): number {
     age--;
   }
   return age;
+}
+
+// Edad que tendrá el día de la carrera, o null si la fecha no es válida.
+export function ageAtRace(birthDate: string): number | null {
+  const parsed = Date.parse(birthDate);
+  return Number.isNaN(parsed) ? null : ageAt(new Date(parsed), RACE_DATE);
+}
+
+// 16 y 17 años: pueden correr, pero con autorización firmada de sus tutores.
+export function needsGuardianConsent(birthDate: string): boolean {
+  const age = ageAtRace(birthDate);
+  return age !== null && age >= MIN_AGE && age < ADULT_AGE;
 }
 
 
@@ -83,7 +100,10 @@ export const registrationSchema = z.object({
   birthDate: z
     .string()
     .refine((v) => !Number.isNaN(Date.parse(v)), "Fecha de nacimiento no válida")
-    .refine((v) => ageAt(new Date(v), RACE_DATE) >= 18, "Hay que ser mayor de edad el día de la carrera"),
+    .refine(
+      (v) => (ageAtRace(v) ?? 0) >= MIN_AGE,
+      `Hay que tener ${MIN_AGE} años cumplidos el día de la carrera`
+    ),
   email: z.string().trim().toLowerCase().email("Email no válido"),
   phone: z
     .string()

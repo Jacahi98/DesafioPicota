@@ -6,7 +6,9 @@ import {
   MODALITIES,
   PRICES_CENTS,
   REGISTRATION_DEADLINE,
+  GUARDIAN_AUTH_PATH,
   formatPrice,
+  needsGuardianConsent,
   priceCents,
   registrationSchema,
   type Modality,
@@ -20,6 +22,30 @@ const deadlineLabel = REGISTRATION_DEADLINE.toLocaleDateString("es-ES", {
   year: "numeric",
   timeZone: "UTC",
 });
+
+function GuardianNotice({ compact }: { compact?: boolean }) {
+  return (
+    <div
+      role="note"
+      className="rounded-sm border border-[var(--accent-rose)] bg-[var(--paper-raised)] px-4 py-3 text-sm leading-relaxed text-[var(--ink)]"
+    >
+      <p className="font-semibold text-[var(--accent-rose)]">Eres menor de edad: hace falta autorización</p>
+      <p className="mt-1 text-[var(--text-dim)]">
+        {compact ? "Recuerda llevar" : "Puedes inscribirte, pero tienes que llevar"} la autorización de tu padre, madre
+        o tutor legal <strong className="text-[var(--ink)]">firmada</strong> y entregarla en la{" "}
+        <strong className="text-[var(--ink)]">recogida de dorsal</strong>, junto con una fotocopia de su DNI. Sin ese
+        documento no se te entregará el dorsal.
+      </p>
+      <a
+        href={GUARDIAN_AUTH_PATH}
+        download
+        className="mt-2 inline-block font-semibold text-[var(--pine)] underline underline-offset-4"
+      >
+        Descargar la autorización (PDF)
+      </a>
+    </div>
+  );
+}
 
 const STEPS = ["Modalidad", "Federación", "Tus datos", "Pago"] as const;
 
@@ -283,6 +309,11 @@ export function RegistrationForm() {
                 className={inputClass}
               />
             </Field>
+            {needsGuardianConsent(v.birthDate) && (
+              <div className="sm:col-span-2">
+                <GuardianNotice />
+              </div>
+            )}
             <Field label="Email" name="email" error={errors.email}>
               <input
                 id="email"
@@ -325,6 +356,7 @@ export function RegistrationForm() {
               {price !== null && formatPrice(price)}
             </dd>
           </dl>
+          {needsGuardianConsent(v.birthDate) && <GuardianNotice compact />}
           <p className="text-sm text-[var(--text-dim)]">
             El pago se hace por transferencia bancaria: al confirmar verás el IBAN y el concepto exacto que hay
             que indicar.

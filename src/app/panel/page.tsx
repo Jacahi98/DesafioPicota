@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { registrations, adminPatternConfig } from "@/db/schema";
 import { isValidSession, isValidPatternGate, adminLabel, ADMIN_COOKIE, PATTERN_GATE_COOKIE } from "@/lib/admin-auth";
-import { MODALITIES, formatPrice } from "@/lib/registration";
+import { MODALITIES, formatPrice, needsGuardianConsent } from "@/lib/registration";
 import { loginAction, logoutAction, setPaymentStatusAction } from "@/app/panel/actions";
 import { PatternGate } from "@/app/panel/pattern-gate";
 import { PatternSetup } from "@/app/panel/pattern-setup";
@@ -160,6 +160,11 @@ export default async function AdminPage({
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--ink)]">
                   {r.firstName} {r.lastName}
+                  {needsGuardianConsent(r.birthDate) && (
+                    <span className="ml-2 text-xs text-[var(--accent-rose)]" title="Entregar autorización firmada en la recogida de dorsal">
+                      menor · autorización
+                    </span>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">
                   {MODALITIES[r.modality].label}

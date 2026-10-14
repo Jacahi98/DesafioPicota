@@ -1,11 +1,14 @@
 import { Resend } from "resend";
-import { MODALITIES, BANK_TRANSFER, REGISTRATION_DEADLINE, formatPrice, priceCents, type Modality } from "@/lib/registration";
+import { MODALITIES, BANK_TRANSFER, GUARDIAN_AUTH_PATH, REGISTRATION_DEADLINE, formatPrice, priceCents, type Modality } from "@/lib/registration";
 
 let _resend: Resend | null = null;
 function getResend() {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
+
+// Los enlaces de un email tienen que ser absolutos.
+const GUARDIAN_AUTH_URL = `https://desafiopicota.com${GUARDIAN_AUTH_PATH}`;
 
 const deadlineLabel = REGISTRATION_DEADLINE.toLocaleDateString("es-ES", {
   day: "numeric",
@@ -28,6 +31,7 @@ const COLOR = {
   textFaint: "#96755c",
   pine: "#621719",
   pineInk: "#f4ddb8",
+  rose: "#a9353a",
 };
 
 function row(label: string, value: string, { strong = false } = {}) {
@@ -42,7 +46,13 @@ function row(label: string, value: string, { strong = false } = {}) {
     </tr>`;
 }
 
-function confirmationHtml(params: { firstName: string; modality: Modality; paymentReference: string; price: string }) {
+function confirmationHtml(params: {
+  firstName: string;
+  modality: Modality;
+  paymentReference: string;
+  price: string;
+  guardianConsent: boolean;
+}) {
   const modalityLabel = MODALITIES[params.modality].label;
   return `<!doctype html>
 <html lang="es">
@@ -86,7 +96,16 @@ function confirmationHtml(params: { firstName: string; modality: Modality; payme
                 </p>
                 <p style="margin:0;font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.textDim};">
                   Las inscripciones son definitivas y no tienen devolución.
-                </p>
+                </p>${
+                  params.guardianConsent
+                    ? `
+                <p style="margin:16px 0 0 0;padding:12px 14px;border:1px solid ${COLOR.rose};font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
+                  <strong>Eres menor de edad:</strong> tienes que llevar la autorización de tu padre, madre o tutor legal
+                  firmada y entregarla en la recogida de dorsal, junto con una fotocopia de su DNI.
+                  <a href="${GUARDIAN_AUTH_URL}" style="color:${COLOR.pine};">Descargar la autorización (PDF)</a>.
+                </p>`
+                    : ""
+                }
               </td>
             </tr>
           </table>
@@ -106,6 +125,7 @@ export async function sendConfirmationEmail(params: {
   modality: Modality;
   federated: boolean;
   paymentReference: string;
+  guardianConsent: boolean;
 }) {
   const price = formatPrice(priceCents(params.modality, params.federated));
 
@@ -125,6 +145,7 @@ export async function sendConfirmationEmail(params: {
         modality: params.modality,
         paymentReference: params.paymentReference,
         price,
+        guardianConsent: params.guardianConsent,
       }),
       text: [
         `Hola ${params.firstName},`,
@@ -141,6 +162,13 @@ export async function sendConfirmationEmail(params: {
         "",
         "Las inscripciones son definitivas y no tienen devolución.",
         "",
+        ...(params.guardianConsent
+          ? [
+              "Eres menor de edad: tienes que llevar la autorización de tu padre, madre o tutor legal firmada y entregarla en la recogida de dorsal, junto con una fotocopia de su DNI.",
+              `Descárgala aquí: ${GUARDIAN_AUTH_URL}`,
+              "",
+            ]
+          : []),
         "— Desafío Picota",
       ].join("\n"),
     });

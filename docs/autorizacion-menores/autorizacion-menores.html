@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Autorización de participación de persona menor de edad · Desafío Picota</title>
+<!--
+  Fuente del PDF public/autorizacion-menores.pdf. Para regenerarlo (desde mi-app/):
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+    --no-pdf-header-footer --print-to-pdf=public/autorizacion-menores.pdf \
+    docs/autorizacion-menores/autorizacion-menores.html
+-->
+<style>
+  @page { size: A4; margin: 14mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 10pt/1.38 -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #2a1a16;
+  }
+  header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #621719; padding-bottom: 8px; }
+  header img { width: 74px; height: auto; }
+  h1 { margin: 0; font-size: 14.5pt; line-height: 1.15; color: #621719; letter-spacing: -.005em; }
+  .sub { margin: 3px 0 0; font-size: 9.5pt; color: #5a4038; }
+  .aviso {
+    margin: 10px 0 0; padding: 7px 10px; border: 1px solid #621719; border-radius: 3px;
+    font-size: 9.3pt; background: #fbf3e6;
+  }
+  h2 {
+    margin: 11px 0 5px; font-size: 9pt; text-transform: uppercase; letter-spacing: .09em; color: #355c5e;
+    border-bottom: 1px solid #cdb89c; padding-bottom: 2px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; }
+  .f { display: flex; align-items: flex-end; gap: 6px; font-size: 9.3pt; min-height: 17px; }
+  .f.full { grid-column: 1 / -1; }
+  .f .l { white-space: nowrap; color: #5a4038; }
+  .f .line { flex: 1; border-bottom: 1px solid #2a1a16; height: 14px; }
+  .box { display: inline-block; width: 10px; height: 10px; border: 1.2px solid #2a1a16; margin: 0 3px 0 8px; vertical-align: -1px; }
+  ol, ul { margin: 0; padding-left: 16px; }
+  li { margin: 0 0 3.5px; }
+  .opt { margin: 4px 0 0; font-size: 9.3pt; }
+  .firma { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; margin-top: 12px; align-items: end; }
+  .firma .cuadro { height: 58px; border: 1px solid #2a1a16; border-radius: 2px; }
+  .firma .cap { font-size: 8.5pt; color: #5a4038; margin-top: 2px; }
+  .legal { margin-top: 10px; font-size: 7.9pt; line-height: 1.32; color: #5a4038; border-top: 1px solid #cdb89c; padding-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="../../public/logo-wordmark-light-sm.webp" alt="Desafío Picota Speed Trail">
+  <div>
+    <h1>Autorización de participación de persona menor de edad</h1>
+    <p class="sub">Desafío Picota Speed Trail · 24 de abril de 2027 · Liencres (Piélagos, Cantabria)</p>
+  </div>
+</header>
+
+<p class="aviso">
+  <strong>Para inscripciones de 16 y 17 años</strong> (cumplidos el día de la carrera). Entrega este documento
+  <strong>original y firmado</strong> en la <strong>recogida de dorsal</strong>, junto con una
+  <strong>fotocopia del DNI, NIE o pasaporte de quien autoriza</strong> y el DNI de la persona menor.
+  Sin él no se entregará el dorsal.
+</p>
+
+<h2>1 · Datos de la persona menor</h2>
+<div class="grid">
+  <div class="f full"><span class="l">Nombre y apellidos:</span><span class="line"></span></div>
+  <div class="f"><span class="l">DNI / NIE:</span><span class="line"></span></div>
+  <div class="f"><span class="l">Fecha de nacimiento:</span><span class="line"></span></div>
+  <div class="f"><span class="l">Modalidad:</span><span><i class="box"></i>Trail <i class="box"></i>Andarines</span></div>
+  <div class="f"><span class="l">Referencia de inscripción:</span><span class="line"></span></div>
+</div>
+
+<h2>2 · Datos de quien autoriza</h2>
+<div class="grid">
+  <div class="f full"><span class="l">Nombre y apellidos:</span><span class="line"></span></div>
+  <div class="f"><span class="l">DNI / NIE / pasaporte:</span><span class="line"></span></div>
+  <div class="f"><span class="l">Teléfono (localizable el día de la prueba):</span><span class="line"></span></div>
+  <div class="f full"><span class="l">Email:</span><span class="line"></span></div>
+</div>
+
+<h2>3 · Autorización y declaraciones</h2>
+<p style="margin:0 0 4px;font-size:9.3pt;">Como persona que ejerce la patria potestad o la tutela de la persona menor indicada, <strong>autorizo expresamente su participación</strong> en el Desafío Picota 2027 en la modalidad señalada, y <strong>declaro</strong> que:</p>
+<ol>
+  <li>He leído y acepto, en nombre de la persona menor, el reglamento y las normas de la prueba, y le he explicado que debe cumplirlas y seguir en todo momento las instrucciones de la organización y del personal de seguridad.</li>
+  <li>La persona menor se encuentra en buen estado de salud y condición física para realizar un recorrido de trail costero por terreno natural (senderos y desnivel), y no padece ninguna lesión ni enfermedad que desaconseje su participación.</li>
+  <li>Conozco que la actividad se desarrolla en medio natural y conlleva riesgos propios de la práctica deportiva, que asumo con carácter general.</li>
+  <li>En caso de urgencia y si no fuera posible localizarme, autorizo que se preste a la persona menor la asistencia médica necesaria.</li>
+</ol>
+<div class="f full" style="margin-top:6px;"><span class="l">Alergias, medicación o condiciones médicas que la organización deba conocer (opcional):</span><span class="line"></span></div>
+<div class="f full"><span class="line"></span></div>
+
+<div class="firma">
+  <div>
+    <div class="f"><span class="l">En</span><span class="line"></span><span class="l">, a</span><span class="line" style="max-width:34px"></span><span class="l">de</span><span class="line"></span><span class="l">de 2027</span></div>
+  </div>
+  <div></div>
+  <div>
+    <div class="cuadro"></div>
+    <div class="cap">Firma de quien autoriza</div>
+  </div>
+  <div>
+    <div class="cuadro"></div>
+    <div class="cap">Firma de la persona menor (opcional)</div>
+  </div>
+</div>
+
+<p class="legal">
+  <strong>Protección de datos.</strong> Responsable: Club Deportivo Elemental A Vista SADC (NIF G05724489).
+  Finalidad: acreditar la autorización para la participación de la persona menor en la prueba y gestionar su
+  inscripción. Base: consentimiento de quien autoriza y ejecución de la relación de inscripción. No se ceden datos a terceros salvo obligación legal o seguro de la prueba. Se conservan
+  mientras dure la organización de la edición y el plazo legal aplicable. Puedes ejercer tus derechos de acceso,
+  rectificación, supresión, oposición, limitación y portabilidad escribiendo a la organización, y reclamar ante la
+  AEPD (aepd.es). Más información: desafiopicota.com/privacidad.
+</p>
+
+</body>
+</html>

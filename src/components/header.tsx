@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { SectionNav } from "@/components/section-nav";
 import { Logo } from "@/components/core/logo";
 
@@ -13,7 +12,6 @@ export function Header() {
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
           <SectionNav />
-          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -8,6 +8,7 @@ import {
   priceCents,
   isRegistrationOpen,
   generatePaymentReference,
+  needsGuardianConsent,
 } from "@/lib/registration";
 import { sendConfirmationEmail } from "@/lib/email";
 
@@ -87,6 +88,7 @@ export async function registerAction(
     modality: data.modality,
     federated: data.federated,
     paymentReference: reference,
+    guardianConsent: needsGuardianConsent(data.birthDate),
   });
 
   redirect(`/inscripcion/confirmacion/${reference}`);

@@ -56,8 +56,11 @@ export default function PrivacidadPage() {
 
           <Section title="Menores de edad">
             <p>
-              Desafío Picota solo admite inscripciones de personas mayores de edad el día de la carrera. No
-              recogemos intencionadamente datos de menores.
+              Pueden inscribirse personas de 16 y 17 años (cumplidos el día de la carrera) con autorización
+              de su padre, madre o tutor legal, que debe entregarse firmada en la recogida de dorsal junto
+              con una fotocopia de su DNI. La organización conserva esa autorización, con los datos de quien
+              la firma, solo para acreditar la participación del menor y durante el mismo plazo que el resto
+              de datos de la inscripción. Por debajo de 16 años no se admiten inscripciones.
             </p>
           </Section>
 

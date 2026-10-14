@@ -79,13 +79,12 @@ export const GATE_HEADERS: Record<string, string> = {
     "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
 };
 
-// Los dos logos de marca (claro/oscuro) son lo único, aparte del propio
+// El logo de marca es lo único, aparte del propio
 // formulario, que se sirve sin contraseña: la pantalla de acceso los
 // necesita para parecerse a la web. No contienen nada sensible.
-export const GATE_PUBLIC_ASSETS = ["/logo-wordmark-light-sm.webp", "/logo-wordmark-dark-sm.webp"];
+export const GATE_PUBLIC_ASSETS = ["/logo-wordmark-light-sm.webp"];
 
-// Pantalla de acceso con el aspecto de la web: misma paleta (claro u oscuro
-// según el sistema), el wordmark y las líneas de nivel de las dunas en
+// Pantalla de acceso con el aspecto de la web: misma paleta clara, el wordmark y las líneas de nivel de las dunas en
 // movimiento. HTML plano sin JS: así no depende de nada que esté detrás de
 // la contraseña (la tipografía de la web, por eso, se sustituye por la del
 // sistema).
@@ -108,9 +107,8 @@ export function loginPage(message?: string): string {
   const note = message ? `<p class="m" role="alert">${message}</p>` : "";
   return `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<meta name="color-scheme" content="light dark"><title>Acceso · Desafío Picota</title><style>
+<meta name="color-scheme" content="light"><title>Acceso · Desafío Picota</title><style>
 :root{--paper:#f4ddb8;--raised:#faecd4;--border:#dcb787;--ink:#4a1010;--dim:#7a3624;--pine:#621719;--pine-ink:#f4ddb8;--sea:#355c5e;--rose:#a9353a}
-@media(prefers-color-scheme:dark){:root{--paper:#1c0f0c;--raised:#271713;--border:#3d2620;--ink:#f2e2c8;--dim:#d9b89a;--pine:#ef484d;--pine-ink:#1c0f0c;--sea:#57979b;--rose:#d16d71}}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
 svg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
@@ -129,7 +127,7 @@ button{background:var(--pine);border-color:var(--pine);color:var(--pine-ink);fon
 button:hover{opacity:.9}
 .m{margin:0;color:var(--rose);font-size:14px}
 </style></head><body>${wavesSvg()}<main>
-<picture><source media="(prefers-color-scheme: dark)" srcset="/logo-wordmark-dark-sm.webp"><img src="/logo-wordmark-light-sm.webp" alt="Desafío Picota Speed Trail" width="260" height="173"></picture>
+<img src="/logo-wordmark-light-sm.webp" alt="Desafío Picota Speed Trail" width="260" height="173">
 <p class="k">Liencres · Parque Natural de las Dunas</p>
 <h1>¿Tienes ganas de trail? 🏃</h1>
 <form method="POST" action="${GATE_PATH}" autocomplete="off">${note}

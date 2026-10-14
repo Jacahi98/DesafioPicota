@@ -6,7 +6,14 @@ import { Footer } from "@/components/footer";
 import { BackHome } from "@/components/back-home";
 import { getDb } from "@/db";
 import { registrations } from "@/db/schema";
-import { MODALITIES, BANK_TRANSFER, REGISTRATION_DEADLINE, formatPrice } from "@/lib/registration";
+import {
+  MODALITIES,
+  BANK_TRANSFER,
+  GUARDIAN_AUTH_PATH,
+  REGISTRATION_DEADLINE,
+  formatPrice,
+  needsGuardianConsent,
+} from "@/lib/registration";
 
 export const metadata: Metadata = {
   title: "Inscripción recibida | Desafío Picota",
@@ -70,6 +77,27 @@ export default async function ConfirmacionPage({
           Indica el concepto exactamente como aparece arriba — es lo que usamos para identificar tu pago.
           Plazo: antes del {deadlineLabel}. Te hemos enviado estos mismos datos por email.
         </p>
+        {needsGuardianConsent(registration.birthDate) && (
+          <div
+            role="note"
+            className="mt-8 rounded-sm border border-[var(--accent-rose)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]"
+          >
+            <p className="font-semibold text-[var(--accent-rose)]">Falta un papel: la autorización de tu tutor</p>
+            <p className="mt-1">
+              Como eres menor de edad, tienes que llevar la autorización de tu padre, madre o tutor legal{" "}
+              <strong className="text-[var(--ink)]">firmada</strong> y entregarla en la{" "}
+              <strong className="text-[var(--ink)]">recogida de dorsal</strong>, junto con una fotocopia de su DNI.
+              Sin ese documento no se te entregará el dorsal.
+            </p>
+            <a
+              href={GUARDIAN_AUTH_PATH}
+              download
+              className="mt-2 inline-block font-semibold text-[var(--pine)] underline underline-offset-4"
+            >
+              Descargar la autorización (PDF)
+            </a>
+          </div>
+        )}
         <p className="mt-3 text-sm text-[var(--text-faint)]">
           Guarda esta página o el email: la referencia <span className="font-mono">{registration.paymentReference}</span>{" "}
           es tu localizador de inscripción.
