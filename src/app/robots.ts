@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://desafio-picota.vercel.app/sitemap.xml",
+    sitemap: "https://desafiopicota.com/sitemap.xml",
   };
 }

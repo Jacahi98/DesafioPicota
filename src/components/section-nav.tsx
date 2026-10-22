@@ -12,7 +12,7 @@ import { BorderTrail } from "@/components/core/border-trail";
 const SECTIONS = [
   { id: "top", href: "/#top", label: "Inicio", icon: Home },
   { id: "recorrido", href: "/#recorrido", label: "Recorrido", icon: Route },
-  { id: "inscripcion", href: "/inscripcion", label: "Inscripción", icon: UserPlus, disabled: true },
+  { id: "preinscripcion", href: "/preinscripcion", label: "Preinscripción", icon: UserPlus },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -44,7 +44,7 @@ export function SectionNav() {
   }, [pathname]);
 
   const current: SectionId | null =
-    pathname === "/" ? homeSection : pathname.startsWith("/inscripcion") ? "inscripcion" : null;
+    pathname === "/" ? homeSection : pathname.startsWith("/preinscripcion") ? "preinscripcion" : null;
 
   return (
     <nav aria-label="Secciones" className="flex items-center gap-1.5 sm:gap-2">

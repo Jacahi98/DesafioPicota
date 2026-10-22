@@ -1,4 +1,5 @@
-import { pgTable, text, integer, timestamp, uuid, date, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, text, integer, timestamp, uuid, date, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const modalityEnum = pgEnum("modality", ["trekking", "andarines"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "confirmed", "cancelled"]);
@@ -14,6 +15,13 @@ export const registrations = pgTable("registrations", {
   birthDate: date("birth_date").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
+  // Añadidas después de las primeras filas: esas filas tienen '' (por eso son
+  // NOT NULL DEFAULT '' y no un NOT NULL a secas, que habría roto el ALTER).
+  address: text("address").notNull().default(""),
+  emergencyPhone: text("emergency_phone").notNull().default(""),
+  // Talla de camiseta. Nullable: las filas anteriores a este campo no la tienen;
+  // el formulario la exige para las nuevas.
+  shirtSize: text("shirt_size"),
   club: text("club"),
 
   // Licencia federativa: el precio depende de ello. licenseVerified arranca
@@ -29,7 +37,20 @@ export const registrations = pgTable("registrations", {
   paymentUpdatedAt: timestamp("payment_updated_at", { withTimezone: true }),
 
   privacyConsentAt: timestamp("privacy_consent_at", { withTimezone: true }).notNull(),
-});
+  // Consentimiento al tratamiento de datos por el grupo deportivo organizador.
+  // Nullable: las filas anteriores a esta casilla no lo tienen.
+  clubConsentAt: timestamp("club_consent_at", { withTimezone: true }),
+
+  // Borrado lógico: una fila con deleted_at no cuenta para plazas, DNI ni
+  // confirmación, y no sale en el panel. Toda lectura de negocio filtra IS NULL.
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+}, (t) => [
+  // Creado a mano en la Neon real; se declara aquí para que drizzle-kit no lo
+  // borre ni lo recree distinto.
+  uniqueIndex("registrations_dni_active_uniq")
+    .on(t.dni)
+    .where(sql`${t.deletedAt} IS NULL AND ${t.paymentStatus} <> 'cancelled'`),
+]);
 
 export type Registration = typeof registrations.$inferSelect;
 export type NewRegistration = typeof registrations.$inferInsert;

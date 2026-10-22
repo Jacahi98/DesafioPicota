@@ -1,5 +1,6 @@
 import { Resend } from "resend";
-import { MODALITIES, BANK_TRANSFER, GUARDIAN_AUTH_PATH, REGISTRATION_DEADLINE, formatPrice, priceCents, type Modality } from "@/lib/registration";
+import { MODALITIES, GUARDIAN_AUTH_PATH, FEDERATED_LICENSE_SHORT, CONTACT_EMAIL, type Modality } from "@/lib/registration";
+import { escapeHtml } from "@/lib/escape-html";
 
 let _resend: Resend | null = null;
 function getResend() {
@@ -9,13 +10,6 @@ function getResend() {
 
 // Los enlaces de un email tienen que ser absolutos.
 const GUARDIAN_AUTH_URL = `https://desafiopicota.com${GUARDIAN_AUTH_PATH}`;
-
-const deadlineLabel = REGISTRATION_DEADLINE.toLocaleDateString("es-ES", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 // Paleta calcada de globals.css (tema claro) — el email no puede leer las
 // custom properties del sitio, así que los valores van repetidos aquí a
@@ -34,26 +28,73 @@ const COLOR = {
   rose: "#a9353a",
 };
 
+// label y value llegan como texto plano y se escapan AQUÍ, en el único sitio
+// por el que pasan las filas, para que ningún valor del usuario (nombre, club,
+// email…) llegue al HTML sin pasar por escapeHtml. word-break evita que un
+// email largo sin espacios ensanche la tabla en clientes estrechos.
 function row(label: string, value: string, { strong = false } = {}) {
   return `
     <tr>
       <td style="padding:11px 0;border-top:1px solid ${COLOR.border};font:600 11px/1.4 -apple-system,Helvetica,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${COLOR.textDim};white-space:nowrap;">
-        ${label}
+        ${escapeHtml(label)}
       </td>
-      <td style="padding:11px 0;border-top:1px solid ${COLOR.border};text-align:right;font:${strong ? "700" : "400"} 15px/1.4 ui-monospace,'IBM Plex Mono',Menlo,monospace;color:${COLOR.ink};">
-        ${value}
+      <td style="padding:11px 0;border-top:1px solid ${COLOR.border};text-align:right;word-break:break-word;font:${strong ? "700" : "400"} 15px/1.4 ui-monospace,'IBM Plex Mono',Menlo,monospace;color:${COLOR.ink};">
+        ${escapeHtml(value)}
       </td>
     </tr>`;
 }
 
-function confirmationHtml(params: {
+type ConfirmationParams = {
+  to: string;
   firstName: string;
+  lastName: string;
+  dni: string;
+  birthDate: string;
+  phone: string;
+  emergencyPhone: string;
+  shirtSize?: string | null;
+  address: string;
+  club?: string | null;
   modality: Modality;
+  federated: boolean;
   paymentReference: string;
-  price: string;
   guardianConsent: boolean;
-}) {
-  const modalityLabel = MODALITIES[params.modality].label;
+};
+
+type Detail = [label: string, value: string];
+
+// Las mismas filas, en el mismo orden, que la página de confirmación
+// (src/app/preinscripcion/confirmacion/[reference]/page.tsx). Un único origen
+// para el HTML y para el texto plano del email.
+function detailRows(params: ConfirmationParams): Detail[] {
+  // birthDate llega como "YYYY-MM-DD": en UTC para que la zona horaria del
+  // servidor no mueva el día.
+  const birthDateLabel = new Date(params.birthDate).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const rows: Detail[] = [
+    ["Localizador", params.paymentReference],
+    ["Modalidad", MODALITIES[params.modality].label],
+    ["Nombre", `${params.firstName} ${params.lastName}`],
+    ["DNI/NIE", params.dni],
+    ["Fecha de nacimiento", birthDateLabel],
+    ["Email", params.to],
+    ["Teléfono", params.phone],
+  ];
+  // Como en la página: una fila vacía no se muestra.
+  if (params.emergencyPhone) rows.push(["Teléfono de emergencia", params.emergencyPhone]);
+  if (params.address) rows.push(["Dirección", params.address]);
+  if (params.shirtSize) rows.push(["Talla de camiseta", params.shirtSize]);
+  if (params.club) rows.push(["Club", params.club]);
+  rows.push(["Federación", params.federated ? "Federado" : "No federado"]);
+  if (params.federated) rows.push(["Licencia federativa", FEDERATED_LICENSE_SHORT]);
+  return rows;
+}
+
+function confirmationHtml(params: ConfirmationParams) {
   return `<!doctype html>
 <html lang="es">
   <body style="margin:0;padding:32px 16px;background:${COLOR.paper};font-family:-apple-system,Helvetica,Arial,sans-serif;">
@@ -69,48 +110,40 @@ function confirmationHtml(params: {
                 <p style="margin:0 0 24px 0;font:600 10px/1 -apple-system,Helvetica,Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:${COLOR.textFaint};">
                   Speed trail · Liencres, Cantabria
                 </p>
-                <h1 style="margin:0 0 12px 0;font:700 22px/1.25 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
-                  Inscripción recibida
+                <h1 style="margin:0 0 24px 0;font:700 22px/1.25 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
+                  Hemos recibido tu preinscripción con los siguientes datos
                 </h1>
-                <p style="margin:0 0 24px 0;font:400 15px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.textDim};">
-                  Hola ${params.firstName}, hemos recibido tu inscripción en ${modalityLabel}. Tu plaza queda reservada en
-                  cuanto hagamos la transferencia con estos datos.
-                </p>
               </td>
             </tr>
             <tr>
               <td style="padding:0 32px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  ${row("IBAN", BANK_TRANSFER.iban)}
-                  ${row("Titular", BANK_TRANSFER.holder)}
-                  ${row("Importe", params.price, { strong: true })}
-                  ${row("Concepto (obligatorio)", params.paymentReference, { strong: true })}
+                  ${detailRows(params)
+                    .map(([label, value], i) => row(label, value, { strong: i === 0 }))
+                    .join("")}
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:24px 32px 32px 32px;">
-                <p style="margin:0 0 10px 0;font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.textDim};">
-                  Indica el concepto exactamente como aparece arriba — es lo que usamos para identificar tu pago.
-                  Plazo: antes del ${deadlineLabel}.
-                </p>
-                <p style="margin:0;font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.textDim};">
-                  Las inscripciones son definitivas y no tienen devolución.
+              <td style="padding:16px 32px 32px 32px;">
+                <p style="margin:0 0 16px 0;font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
+                  Guarda este correo: el código localizador <strong>${escapeHtml(params.paymentReference)}</strong> es el
+                  que tendrás que usar en la inscripción para acreditar que estás preinscrito.
                 </p>${
-                  params.guardianConsent
-                    ? `
-                <p style="margin:16px 0 0 0;padding:12px 14px;border:1px solid ${COLOR.rose};font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
+                params.guardianConsent
+                  ? `
+                <p style="margin:0;padding:12px 14px;border:1px solid ${COLOR.rose};font:400 14px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.ink};">
                   <strong>Eres menor de edad:</strong> tienes que llevar la autorización de tu padre, madre o tutor legal
                   firmada y entregarla en la recogida de dorsal, junto con una fotocopia de su DNI.
                   <a href="${GUARDIAN_AUTH_URL}" style="color:${COLOR.pine};">Descargar la autorización (PDF)</a>.
                 </p>`
-                    : ""
-                }
+                  : ""
+              }
               </td>
             </tr>
           </table>
           <p style="margin:20px 0 0 0;font:400 12px/1.5 -apple-system,Helvetica,Arial,sans-serif;color:${COLOR.textFaint};">
-            Referencia ${params.paymentReference} · Desafío Picota, Liencres
+            Referencia ${escapeHtml(params.paymentReference)} · Desafío Picota, Liencres
           </p>
         </td>
       </tr>
@@ -119,48 +152,32 @@ function confirmationHtml(params: {
 </html>`;
 }
 
-export async function sendConfirmationEmail(params: {
-  to: string;
-  firstName: string;
-  modality: Modality;
-  federated: boolean;
-  paymentReference: string;
-  guardianConsent: boolean;
-}) {
-  const price = formatPrice(priceCents(params.modality, params.federated));
-
+export async function sendConfirmationEmail(params: ConfirmationParams) {
   // Sin dominio propio verificado en Resend, la cuenta está en modo sandbox:
   // solo se pueden enviar emails a la dirección del propio titular de la
-  // cuenta Resend, no a los inscritos reales. Se intenta igualmente — si
-  // falla, la inscripción ya está guardada en la base de datos y la página
-  // de confirmación muestra las mismas instrucciones, así que no se pierde
-  // nada — solo no llega el correo hasta verificar un dominio real.
+  // cuenta Resend, no a quienes hacen la preinscripción. Se intenta igualmente —
+  // si falla, la preinscripción ya está guardada en la base de datos y la página
+  // de confirmación muestra los mismos datos, así que no se pierde nada —
+  // solo no llega el correo hasta verificar un dominio real.
   try {
     await getResend().emails.send({
-      from: "Desafío Picota <onboarding@resend.dev>",
+      // Remitente configurable: con el dominio desafiopicota.com verificado en
+      // Resend se define EMAIL_FROM (p. ej. "Desafío Picota <preinscripcion@desafiopicota.com>")
+      // en Vercel; sin ella se usa el remitente de pruebas de Resend.
+      from: process.env.EMAIL_FROM || "Desafío Picota <onboarding@resend.dev>",
       to: params.to,
-      subject: `Inscripción recibida — ${params.paymentReference}`,
-      html: confirmationHtml({
-        firstName: params.firstName,
-        modality: params.modality,
-        paymentReference: params.paymentReference,
-        price,
-        guardianConsent: params.guardianConsent,
-      }),
+      // Quien responda al correo escribe al buzón de contacto de Gmail.
+      replyTo: CONTACT_EMAIL,
+      subject: `Preinscripción recibida — ${params.paymentReference}`,
+      html: confirmationHtml(params),
       text: [
         `Hola ${params.firstName},`,
         "",
-        `Hemos recibido tu inscripción al Desafío Picota (modalidad ${MODALITIES[params.modality].label}, ${price}).`,
+        "Hemos recibido tu preinscripción al Desafío Picota con los siguientes datos:",
         "",
-        "Para confirmarla, haz una transferencia bancaria con estos datos:",
-        `  IBAN: ${BANK_TRANSFER.iban}`,
-        `  Titular: ${BANK_TRANSFER.holder}`,
-        `  Importe: ${price}`,
-        `  Concepto: ${params.paymentReference}`,
+        ...detailRows(params).map(([label, value]) => `  ${label}: ${value}`),
         "",
-        `Plazo: antes del ${deadlineLabel}. Es imprescindible indicar el concepto exacto para poder identificar tu pago.`,
-        "",
-        "Las inscripciones son definitivas y no tienen devolución.",
+        `Guarda este correo: el código localizador ${params.paymentReference} es el que tendrás que usar en la inscripción para acreditar que estás preinscrito.`,
         "",
         ...(params.guardianConsent
           ? [

@@ -4,10 +4,11 @@ import { z } from "zod";
 // explícitamente como placeholder — sustituir antes de abrir inscripciones
 // de verdad.
 export const RACE_DATE = new Date("2027-04-24T00:00:00Z");
-// 23:59:59 hora de Madrid (CEST, UTC+2 en abril) — en UTC son las 21:59:59
-// del mismo día, así que toLocaleDateString con timeZone:"UTC" muestra el
-// 20 y no el 21 (lo que pasaba formateando en la zona horaria del navegador).
-export const REGISTRATION_DEADLINE = new Date("2027-04-20T21:59:59Z");
+// Ventana de la PREINSCRIPCIÓN (cartel: "3 noviembre 2026, solo 48 horas").
+// Abre a las 00:00 del 3 de noviembre (hora de España, CET = +01:00) y cierra
+// 48 h después, a las 00:00 del 5. Hora confirmada por Javier (2026-10-22).
+export const REGISTRATION_OPENS_AT = new Date("2026-11-03T00:00:00+01:00");
+export const REGISTRATION_DEADLINE = new Date(REGISTRATION_OPENS_AT.getTime() + 48 * 60 * 60 * 1000);
 
 export const MODALITIES = {
   trekking: { label: "Trail" },
@@ -28,23 +29,19 @@ export function priceCents(modality: Modality, federated: boolean): number {
   return PRICES_CENTS[modality][federated ? "federated" : "standard"];
 }
 
-// Decide si el nº de licencia federativa que escribe el corredor tiene un
-// formato aceptable. Solo mira el FORMATO (no puede saber si la licencia
-// existe de verdad: eso se revisa a mano en el panel, "sin verificar").
-// Se usa en el formulario (paso 3) y se vuelve a comprobar en el servidor.
-//
-// Deliberadamente permisiva: no se conoce el formato exacto de cada
-// federación y una regla estricta rechazaría a federados de verdad. Pide
-// solo lo mínimo que cualquier licencia real cumple: 4-20 caracteres
-// (letras, números, guion, barra, punto o espacio), al menos un dígito y no
-// ser un mismo carácter repetido ("0000", "aaaa").
-export function licenseNumberIsValid(raw: string): boolean {
-  const value = raw.trim();
-  if (!/^[A-Za-z0-9\-\/. ]{4,20}$/.test(value)) return false;
-  if (!/[0-9]/.test(value)) return false;
-  if (new Set(value.replace(/[^A-Za-z0-9]/g, "").toLowerCase()).size < 2) return false;
-  return true;
-}
+// La licencia federativa ya no se pide en el formulario: quien se marca como
+// federado debe llevar el documento acreditativo EN PERSONA y se comprueba el
+// día de la carrera (ver FederatedLicenseNotice).
+export const FEDERATED_LICENSE_NOTICE =
+  "Es obligatorio llevar, de forma presencial, el documento que acredite tu licencia federativa. Se comprobará el día de la carrera. Si te has inscrito como federado y no llevas el documento, tendrás que abonar el importe correspondiente el día de la carrera.";
+
+// Correo de contacto para incidencias (p. ej. si no llega el email de
+// confirmación). Confirmado por Javier el 2026-10-22.
+export const CONTACT_EMAIL = "desafiopicota@gmail.com";
+
+// Versión corta para la confirmación y el email.
+export const FEDERATED_LICENSE_SHORT =
+  "Lleva el documento acreditativo, de forma presencial. Si no lo llevas, tendrás que abonar el importe correspondiente el día de la carrera.";
 
 export const BANK_TRANSFER = {
   // PLACEHOLDER — sustituir por el IBAN real antes de abrir inscripciones.
@@ -52,12 +49,15 @@ export const BANK_TRANSFER = {
   holder: "Carlos Castañeda",
 };
 
-// PLACEHOLDER — responsable del tratamiento (RGPD), sustituir por la
-// entidad/NIF real antes de abrir inscripciones.
+// Responsable del tratamiento (RGPD). Entidad y NIF confirmados como
+// definitivos por Javier (2026-10-21).
 export const ORGANIZER = {
   legalName: "Club Deportivo Elemental A Vista SADC",
   nif: "G05724489",
 };
+
+// Tallas de camiseta de la prueba (lista confirmada por Javier, 2026-10-22).
+export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 
 // Edad mínima calculada el día de la carrera, no hoy: alguien que hoy tiene
 // 17 pero los cumple antes del 24 de abril de 2027 puede inscribirse.
@@ -92,11 +92,13 @@ export const registrationSchema = z.object({
   modality: z.enum(["trekking", "andarines"]),
   firstName: z.string().trim().min(1, "Falta el nombre").max(100),
   lastName: z.string().trim().min(1, "Faltan los apellidos").max(100),
+  // Se normaliza ANTES de validar: sin espacios ni guiones y en mayúsculas
+  // ("12345678-z" y " 12345678 z " son el mismo DNI 12345678Z). Lo que se
+  // guarda, y lo que se compara para detectar repetidos, es siempre esta forma.
   dni: z
     .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[0-9XYZ][0-9]{7}[A-Z]$/, "DNI/NIE no válido"),
+    .transform((v) => v.replace(/[\s-]/g, "").toUpperCase())
+    .pipe(z.string().regex(/^[0-9XYZ][0-9]{7}[A-Z]$/, "DNI/NIE no válido")),
   birthDate: z
     .string()
     .refine((v) => !Number.isNaN(Date.parse(v)), "Fecha de nacimiento no válida")
@@ -109,39 +111,75 @@ export const registrationSchema = z.object({
     .string()
     .trim()
     .regex(/^[679][0-9]{8}$/, "Teléfono no válido (9 dígitos)"),
+  // Con el campo vacío fallan dos reglas a la vez; formulario y servidor solo
+  // enseñan la primera de cada campo ("Falta…").
+  address: z
+    .string()
+    .trim()
+    .min(1, "Falta la dirección")
+    .min(5, "Dirección demasiado corta")
+    .max(200, "Dirección demasiado larga"),
+  emergencyPhone: z
+    .string()
+    .trim()
+    .min(1, "Falta el teléfono de emergencia")
+    .regex(/^[679][0-9]{8}$/, "Teléfono de emergencia no válido (9 dígitos)"),
+  shirtSize: z.enum(SHIRT_SIZES, { message: "Elige tu talla de camiseta" }),
   club: z.string().trim().max(100).optional().or(z.literal("")),
   federated: z.boolean(),
-  licenseNumber: z.string().trim().max(30).optional().or(z.literal("")),
   privacyConsent: z.literal(true, { message: "Hay que aceptar la política de privacidad" }),
-}).superRefine((data, ctx) => {
-  // Federado => hace falta el nº de licencia, con un formato razonable.
-  if (data.federated && !licenseNumberIsValid(data.licenseNumber ?? "")) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["licenseNumber"],
-      message: data.licenseNumber ? "Número de licencia no válido" : "Falta el número de licencia",
-    });
-  }
+  clubConsent: z.literal(true, {
+    message: "Hay que aceptar el tratamiento y la recogida de tus datos por parte del grupo deportivo",
+  }),
 });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
 
-// Interruptor general: las inscripciones aún no han abierto (previsiblemente
-// en 2027). Con esto en false la página muestra el aviso y registerAction
-// rechaza cualquier envío en el servidor, aunque alguien llame a la acción
-// directamente sin pasar por el formulario. Ponerlo en true al abrirlas.
-export const REGISTRATION_ENABLED = false;
+// Interruptor general de la preinscripción. Con esto en false la página muestra
+// el aviso y registerAction rechaza cualquier envío en el servidor, aunque
+// alguien llame a la acción directamente sin pasar por el formulario. En true
+// la preinscripción se rige por su ventana (REGISTRATION_OPENS_AT a
+// REGISTRATION_DEADLINE) en registrationPhase().
+export const REGISTRATION_ENABLED = true;
 
-export function isRegistrationOpen(): boolean {
-  return REGISTRATION_ENABLED && new Date() < REGISTRATION_DEADLINE;
+export type RegistrationPhase = "before" | "open" | "closed";
+
+export function registrationPhase(now: Date = new Date()): RegistrationPhase {
+  // En desarrollo local siempre abierta, para poder probar el formulario fuera
+  // de la ventana. Las compilaciones de producción (incluidas las de Vercel)
+  // ignoran esto.
+  if (process.env.NODE_ENV !== "production") return "open";
+  if (now < REGISTRATION_OPENS_AT) return "before";
+  if (now >= REGISTRATION_DEADLINE) return "closed";
+  return "open";
 }
 
+export function isRegistrationOpen(): boolean {
+  return REGISTRATION_ENABLED && registrationPhase() === "open";
+}
+
+// Aforo y anti-abuso de la preinscripción: valores únicos, los usan el
+// servidor (actions.ts, página y confirmación).
+export const PLAZAS_MAX = 500; // total de plazas (filas vivas: no eliminadas y no canceladas), sin cupo por modalidad
+export const REG_WINDOW_MIN = 15; // ventana del límite de envíos por IP
+export const REG_MAX_PER_IP = 12;
+export const REG_MIN_FILL_MS = 8000; // un envío más rápido que esto no lo hace una persona
+export const REF_WINDOW_MIN = 15; // ventana del límite de consultas de la confirmación por IP
+export const REF_MAX_PER_IP = 30;
+// Localizador: DP27- y 6 (filas antiguas) u 8 caracteres.
+export const REFERENCE_PATTERN = /^DP27-[A-Z2-9]{6,8}$/;
+
+// 8 caracteres (las filas antiguas tienen 6 y siguen siendo válidas). Con el
+// generador criptográfico y no con el aleatorio simple del motor: el
+// localizador abre la página de confirmación, que enseña datos personales, así
+// que no puede ser predecible. Se usa el crypto global de la plataforma y no el
+// módulo de Node, porque este fichero también lo importa el cliente.
 export function generatePaymentReference(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin 0/O/1/I para evitar confusiones al escribir a mano
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 símbolos, sin 0/O/1/I para evitar confusiones al escribir a mano
+  // 256 % 32 === 0: cada byte % 32 cae en el alfabeto sin sesgo.
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(8));
   let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
+  for (const b of bytes) code += chars[b % 32];
   return `DP27-${code}`;
 }
 

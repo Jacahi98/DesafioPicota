@@ -5,7 +5,7 @@ import { PatternLock } from "@/components/pattern-lock";
 import { TerminalBoot } from "@/components/terminal-boot";
 import { verifyPatternAction } from "@/app/panel/actions";
 
-const BOOT_LINES = ["conectando con desafio-picota.vercel.app...", "acceso restringido — se requiere patrón"];
+const BOOT_LINES = ["conectando con desafiopicota.com...", "acceso restringido — se requiere patrón"];
 
 export function PatternGate({ error, rateLimited }: { error: boolean; rateLimited: boolean }) {
   const [isPending, startTransition] = useTransition();

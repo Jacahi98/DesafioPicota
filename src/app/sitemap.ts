@@ -6,7 +6,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://desafio-picota.vercel.app",
+      url: "https://desafiopicota.com",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,

@@ -14,7 +14,12 @@ import {
 
 const WINDOW_MINUTES = 15;
 const MAX_PER_IP = 6; // fallos por IP en la ventana
-const MAX_GLOBAL = 100; // fallos entre TODAS las IPs: frena fuerza bruta distribuida
+// Fallos entre TODAS las IPs. Umbral de FRENO SUAVE, no de bloqueo: por encima
+// de él cada intento se ralentiza, pero sigue pudiendo entrar quien sabe la
+// contraseña. Bloquear a todos al llegar a 100 era un DoS contra los usuarios
+// legítimos (cualquiera podía provocarlo con 100 contraseñas falsas).
+const MAX_GLOBAL = 100;
+const GLOBAL_SLOWDOWN_MS = 1500;
 
 function html(body: string, status: number, extra: Record<string, string> = {}) {
   return new NextResponse(body, {
@@ -74,11 +79,12 @@ export async function POST(request: Request) {
     .select({ total: sql<number>`count(*)::int` })
     .from(adminLoginAttempts)
     .where(and(sql`${adminLoginAttempts.ip} like 'gate:%'`, gt(adminLoginAttempts.attemptedAt, since)));
-  if (perIp >= MAX_PER_IP || total >= MAX_GLOBAL) {
+  if (perIp >= MAX_PER_IP) {
     return html(loginPage("Demasiados intentos. Prueba más tarde."), 429, {
       "Retry-After": String(WINDOW_MINUTES * 60),
     });
   }
+  if (total >= MAX_GLOBAL) await new Promise((r) => setTimeout(r, GLOBAL_SLOWDOWN_MS));
 
   // La contraseña solo se acepta por POST en el cuerpo, nunca por URL.
   const form = await request.formData().catch(() => null);

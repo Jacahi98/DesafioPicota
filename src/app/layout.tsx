@@ -29,7 +29,7 @@ const SITE_DESCRIPTION =
 export const metadata: Metadata = {
   // metadataBase resuelve las rutas relativas de abajo a URLs absolutas:
   // Open Graph las exige absolutas o la tarjeta sale sin imagen.
-  metadataBase: new URL("https://desafio-picota.vercel.app"),
+  metadataBase: new URL("https://desafiopicota.com"),
   title: "Desafío Picota | Trail costero, Liencres",
   description: SITE_DESCRIPTION,
   alternates: {

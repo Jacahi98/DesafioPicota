@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { registrations, adminPatternConfig } from "@/db/schema";
 import { isValidSession, isValidPatternGate, adminLabel, ADMIN_COOKIE, PATTERN_GATE_COOKIE } from "@/lib/admin-auth";
@@ -84,7 +84,12 @@ export default async function AdminPage({
     return <LoginForm error={error === "1" || rateLimited} />;
   }
 
-  const rows = await getDb().select().from(registrations).orderBy(desc(registrations.createdAt));
+  // Sin las filas eliminadas (borrado lógico).
+  const rows = await getDb()
+    .select()
+    .from(registrations)
+    .where(isNull(registrations.deletedAt))
+    .orderBy(desc(registrations.createdAt));
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 sm:px-8">
@@ -95,7 +100,7 @@ export default async function AdminPage({
           </h1>
           <p className="mt-1 font-mono text-xs text-[var(--text-faint)]">
             {"// "}
-            {rows.length} inscritos cargados
+            {rows.length} preinscripciones cargadas
           </p>
         </div>
         <form action={logoutAction}>
@@ -125,7 +130,7 @@ export default async function AdminPage({
       </div>
 
       <div className="mt-8 overflow-x-auto rounded-sm border border-[var(--border)] shadow-[var(--shadow)]">
-        <table className="w-full min-w-[1000px] border-collapse font-mono text-sm">
+        <table className="w-full min-w-[1380px] border-collapse font-mono text-sm">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--paper-raised)] text-left">
               {[
@@ -135,6 +140,9 @@ export default async function AdminPage({
                 "dni",
                 "email",
                 "teléfono",
+                "teléfono emergencia",
+                "dirección",
+                "talla",
                 "club",
                 "federado",
                 "importe",
@@ -172,11 +180,16 @@ export default async function AdminPage({
                 <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-dim)]">{r.dni}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.email}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.phone}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.emergencyPhone || "—"}</td>
+                <td className="max-w-[240px] truncate px-3 py-2.5 text-[var(--text-dim)]" title={r.address}>
+                  {r.address || "—"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.shirtSize || "—"}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.club || "—"}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-dim)]">
                   {r.federated ? (
                     <>
-                      <span className="text-[var(--ink)]">Sí · {r.licenseNumber}</span>
+                      <span className="text-[var(--ink)]">Sí{r.licenseNumber ? ` · ${r.licenseNumber}` : ""}</span>
                       {!r.licenseVerified && <span className="ml-2 text-[var(--accent-rose)]">sin verificar</span>}
                     </>
                   ) : (
@@ -229,8 +242,8 @@ export default async function AdminPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-[var(--text-faint)]">
-                  {"// todavía no hay inscripciones"}
+                <td colSpan={16} className="px-3 py-8 text-center text-[var(--text-faint)]">
+                  {"// todavía no hay preinscripciones"}
                 </td>
               </tr>
             )}

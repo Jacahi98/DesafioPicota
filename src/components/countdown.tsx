@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-
-// Momento exacto de la salida: 24 abril 2027 a las 10:00, hora de España
-// (horario de verano, +02:00). Si la hora cambia, se cambia solo aquí.
-const RACE_START = Date.parse("2027-04-24T10:00:00+02:00");
+import { RACE_START } from "@/lib/race";
 
 type Parts = { days: number; hours: number; minutes: number; seconds: number };
 

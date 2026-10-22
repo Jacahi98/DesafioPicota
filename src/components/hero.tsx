@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { routeStats } from "@/data/route-track";
 import { Logo } from "@/components/core/logo";
 import { Countdown } from "@/components/countdown";
+import { RACE_START, raceDayLabel } from "@/lib/race";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -77,6 +78,11 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.25 }}
           >
             <Countdown />
+            {/* Fuera de Countdown a propósito: así sale en el HTML del servidor,
+                no salta al montar el contador y sigue ahí pasada la carrera. */}
+            <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-wider text-[var(--ink)] sm:text-xs lg:text-left">
+              <time dateTime={new Date(RACE_START).toISOString()}>{raceDayLabel()}</time>
+            </p>
           </motion.div>
 
           <dl className="grid grid-cols-3 gap-x-8 gap-y-3 border-t border-[var(--border)] pt-6 font-mono text-[var(--ink)] sm:gap-x-12 lg:border-t-0 lg:border-l lg:pl-10 lg:pt-0">

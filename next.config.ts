@@ -93,6 +93,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // La sección ha tenido otros nombres antes: los enlaces antiguos se conservan
+  // con un 308 para que marcadores y enlaces ya compartidos sigan llegando a la
+  // preinscripción (y a su página de confirmación).
+  async redirects() {
+    return [
+      { source: "/inscripcion", destination: "/preinscripcion", permanent: true },
+      { source: "/inscripcion/:path*", destination: "/preinscripcion/:path*", permanent: true },
+      { source: "/prereserva", destination: "/preinscripcion", permanent: true },
+      { source: "/prereserva/:path*", destination: "/preinscripcion/:path*", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;
