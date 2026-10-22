@@ -13,7 +13,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section className="border-t border-[var(--border)] pt-6">
       <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-      <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-[var(--text-dim)]">{children}</div>
+      <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-[var(--text-dim)] [overflow-wrap:anywhere]">
+        {children}
+      </div>
     </section>
   );
 }
@@ -51,7 +53,7 @@ export default function PrivacidadPage() {
 
         <div className="mt-10 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4">
           <h2 className="text-lg font-semibold text-[var(--ink)]">Información básica</h2>
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-[15px] leading-relaxed">
+          <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-3 text-[15px] leading-relaxed [overflow-wrap:anywhere]">
             <dt className="font-semibold text-[var(--ink)]">Responsable</dt>
             <dd className="text-[var(--text-dim)]">
               {ORGANIZER.legalName} (NIF {ORGANIZER.nif}).

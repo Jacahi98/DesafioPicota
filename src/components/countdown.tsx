@@ -6,8 +6,8 @@ import { RACE_START } from "@/lib/race";
 
 type Parts = { days: number; hours: number; minutes: number; seconds: number };
 
-function partsLeft(now: number): Parts | null {
-  const diff = Math.floor((RACE_START - now) / 1000);
+function partsLeft(target: number, now: number): Parts | null {
+  const diff = Math.floor((target - now) / 1000);
   if (diff <= 0) return null;
   return {
     days: Math.floor(diff / 86400),
@@ -66,28 +66,38 @@ function Tile({ value, label, digits, live }: { value: number; label: string; di
   );
 }
 
-export function Countdown() {
+// Sin props es la cuenta atrás de la portada hacia la salida. La preinscripción
+// la reutiliza con su propio objetivo, etiqueta y texto de "terminado".
+export function Countdown({
+  target = RACE_START,
+  label: title = "Cuenta atrás",
+  doneText = "¡Hoy es el Desafío Picota!",
+}: {
+  target?: number;
+  label?: string;
+  doneText?: string;
+} = {}) {
   // Se calcula tras montar y no en el render del servidor: el HTML
   // prerenderizado y el del navegador no coincidirían (cambia cada segundo).
   const [parts, setParts] = useState<Parts | null | undefined>(undefined);
 
   useEffect(() => {
-    const tick = () => setParts(partsLeft(Date.now()));
+    const tick = () => setParts(partsLeft(target, Date.now()));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [target]);
 
   if (parts === undefined) return <div className="h-[92px] sm:h-[124px]" aria-hidden />;
   if (parts === null) {
-    return <p className="font-mono text-2xl text-[var(--accent-rose)]">¡Hoy es el Desafío Picota!</p>;
+    return <p className="font-mono text-2xl text-[var(--accent-rose)]">{doneText}</p>;
   }
 
   const label = `Faltan ${parts.days} días, ${parts.hours} horas, ${parts.minutes} minutos y ${parts.seconds} segundos`;
   return (
     <div className="font-mono" role="timer" aria-label={label}>
       <p className="mb-3 text-center text-[11px] uppercase tracking-wider text-[var(--sea)] lg:text-left">
-        Cuenta atrás
+        {title}
       </p>
       <div className="flex items-start justify-center gap-2 sm:gap-3 lg:justify-start" aria-hidden>
         <Tile value={parts.days} label="días" digits={2} />

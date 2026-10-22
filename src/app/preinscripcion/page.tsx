@@ -3,12 +3,16 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { BackHome } from "@/components/back-home";
 import { RegistrationForm } from "@/components/registration-form";
+import { RegistrationClock } from "@/components/registration-clock";
 import {
   isRegistrationOpen,
   registrationPhase,
+  isTestOpen,
+  madridDateTimeLabel,
   PLAZAS_MAX,
   REGISTRATION_ENABLED,
   REGISTRATION_OPENS_AT,
+  REGISTRATION_DEADLINE,
 } from "@/lib/registration";
 import { countActiveRegistrations } from "@/lib/register-db";
 
@@ -26,11 +30,12 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 const NOTICE_CLASS =
-  "mt-10 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm text-[var(--text-dim)]";
+  "mt-6 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm text-[var(--text-dim)]";
 
 export default async function PreinscripcionPage() {
   const open = isRegistrationOpen();
   const phase = registrationPhase();
+  const testMode = isTestOpen();
   const opensLabel = new Intl.DateTimeFormat("es-ES", {
     day: "numeric",
     month: "long",
@@ -63,10 +68,10 @@ export default async function PreinscripcionPage() {
           </>
         ) : (
           <>
-            <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--text-dim)]">
+            <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-dim)]">
               Desafío Picota se corre el 24 de abril de 2027 en Liencres, Cantabria.
             </p>
-            <div className="mt-6 max-w-lg rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]">
+            <div className="mt-6 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]">
               <p>
                 <strong className="text-[var(--ink)]">La preinscripción te asegura tu talla de camiseta y tu inscripción.</strong>{" "}
                 Las inscripciones abren el 14 de enero de 2027, y las personas preinscritas podrán inscribirse un día
@@ -79,17 +84,42 @@ export default async function PreinscripcionPage() {
             </div>
 
             {!open ? (
-              <p className={NOTICE_CLASS}>
-                {phase === "before"
-                  ? `Las preinscripciones se abrirán el ${opensLabel} y estarán abiertas solo 48 horas.`
-                  : "El plazo de preinscripción ya se ha cerrado."}
-              </p>
+              <>
+                {phase === "before" && (
+                  <div className="mt-6">
+                    <RegistrationClock
+                      phase="before"
+                      opensAt={REGISTRATION_OPENS_AT.getTime()}
+                      closesAt={REGISTRATION_DEADLINE.getTime()}
+                      opensLabel={madridDateTimeLabel(REGISTRATION_OPENS_AT)}
+                      closesLabel={madridDateTimeLabel(REGISTRATION_DEADLINE)}
+                    />
+                  </div>
+                )}
+                <p className={NOTICE_CLASS}>
+                  {phase === "before"
+                    ? `Las preinscripciones se abrirán el ${opensLabel} y estarán abiertas solo 48 horas.`
+                    : "El plazo de preinscripción ya se ha cerrado."}
+                </p>
+              </>
             ) : soldOut ? (
               <p className={NOTICE_CLASS}>Las plazas de preinscripción están agotadas.</p>
             ) : (
-              <div className="mt-10">
-                <RegistrationForm />
-              </div>
+              <>
+                <div className="mt-6">
+                  <RegistrationClock
+                    phase="open"
+                    opensAt={REGISTRATION_OPENS_AT.getTime()}
+                    closesAt={REGISTRATION_DEADLINE.getTime()}
+                    opensLabel={madridDateTimeLabel(REGISTRATION_OPENS_AT)}
+                    closesLabel={madridDateTimeLabel(REGISTRATION_DEADLINE)}
+                    testMode={testMode}
+                  />
+                </div>
+                <div className="mt-8">
+                  <RegistrationForm />
+                </div>
+              </>
             )}
           </>
         )}

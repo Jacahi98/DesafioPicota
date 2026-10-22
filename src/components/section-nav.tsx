@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Route, UserPlus } from "lucide-react";
 import { BorderTrail } from "@/components/core/border-trail";
+import { RegistrationRing } from "@/components/registration-ring";
 
 // Antes esto era un único botón "Secciones" que se desplegaba en esta misma
 // fila; ahora las tres secciones están siempre a la vista y la actual lleva
@@ -69,6 +70,7 @@ export function SectionNav() {
             {active && <BorderTrail size={18} style={{ backgroundColor: "var(--accent-rose)", opacity: 0.85 }} />}
             <s.icon size={16} className="shrink-0" />
             <span className="hidden sm:inline">{s.label}</span>
+            {s.id === "preinscripcion" && <RegistrationRing />}
           </Link>
         );
       })}

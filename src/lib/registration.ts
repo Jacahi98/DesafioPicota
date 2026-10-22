@@ -1,14 +1,13 @@
 import { z } from "zod";
+import { registrationPhase } from "@/lib/registration-window";
 
 // Todo esto es información real del evento salvo el IBAN/NIF, marcados
 // explícitamente como placeholder — sustituir antes de abrir inscripciones
 // de verdad.
 export const RACE_DATE = new Date("2027-04-24T00:00:00Z");
-// Ventana de la PREINSCRIPCIÓN (cartel: "3 noviembre 2026, solo 48 horas").
-// Abre a las 00:00 del 3 de noviembre (hora de España, CET = +01:00) y cierra
-// 48 h después, a las 00:00 del 5. Hora confirmada por Javier (2026-10-22).
-export const REGISTRATION_OPENS_AT = new Date("2026-11-03T00:00:00+01:00");
-export const REGISTRATION_DEADLINE = new Date(REGISTRATION_OPENS_AT.getTime() + 48 * 60 * 60 * 1000);
+// La ventana de la preinscripción (apertura, cierre, fase) vive en
+// registration-window.ts, un módulo ligero que también usa el menú.
+export * from "@/lib/registration-window";
 
 export const MODALITIES = {
   trekking: { label: "Trail" },
@@ -142,25 +141,16 @@ export type RegistrationInput = z.infer<typeof registrationSchema>;
 // REGISTRATION_DEADLINE) en registrationPhase().
 export const REGISTRATION_ENABLED = true;
 
-export type RegistrationPhase = "before" | "open" | "closed";
-
-export function registrationPhase(now: Date = new Date()): RegistrationPhase {
-  // En desarrollo local siempre abierta, para poder probar el formulario fuera
-  // de la ventana. Las compilaciones de producción (incluidas las de Vercel)
-  // ignoran esto.
-  if (process.env.NODE_ENV !== "production") return "open";
-  if (now < REGISTRATION_OPENS_AT) return "before";
-  if (now >= REGISTRATION_DEADLINE) return "closed";
-  return "open";
-}
-
 export function isRegistrationOpen(): boolean {
   return REGISTRATION_ENABLED && registrationPhase() === "open";
 }
 
 // Aforo y anti-abuso de la preinscripción: valores únicos, los usan el
 // servidor (actions.ts, página y confirmación).
-export const PLAZAS_MAX = 500; // total de plazas (filas vivas: no eliminadas y no canceladas), sin cupo por modalidad
+// SIN TOPE real (decisión de Javier, 2026-10-22: pueden apuntarse más de 500):
+// valor técnico muy alto. La lógica de aforo atómico se mantiene por si algún
+// día se quiere volver a poner un límite (filas vivas: no eliminadas ni canceladas).
+export const PLAZAS_MAX = 100_000;
 export const REG_WINDOW_MIN = 15; // ventana del límite de envíos por IP
 export const REG_MAX_PER_IP = 12;
 export const REG_MIN_FILL_MS = 8000; // un envío más rápido que esto no lo hace una persona
