@@ -2,10 +2,10 @@
 // lo importan componentes de cliente que están en todas las páginas (el círculo
 // del menú) y no deben arrastrar zod ni el resto de registration.ts.
 
-// Cartel: "3 noviembre 2026, solo 48 horas". Abre a las 00:00 del 3 de
-// noviembre (hora de España, CET = +01:00) y cierra 48 h después (00:00 del 5).
-// Horario confirmado por Javier (2026-10-22).
-export const REGISTRATION_OPENS_AT = new Date("2026-11-03T00:00:00+01:00");
+// Solo 48 horas. Abre a las 00:00 del 10 de noviembre de 2026 (hora de España,
+// CET = +01:00) y cierra 48 h después (00:00 del 12). Javier lo cambió del 3 al
+// 10 de noviembre el 2026-10-22 (el cartel original decía el 3).
+export const REGISTRATION_OPENS_AT = new Date("2026-11-10T00:00:00+01:00");
 export const REGISTRATION_DEADLINE = new Date(REGISTRATION_OPENS_AT.getTime() + 48 * 60 * 60 * 1000);
 
 // El círculo del menú empieza a llenarse este tiempo antes de la apertura.

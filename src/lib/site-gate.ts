@@ -10,6 +10,12 @@ import { createHmac, scryptSync, timingSafeEqual } from "crypto";
 //  - Sin variables configuradas en producción la web se queda CERRADA
 //    (falla cerrando, nunca abierta).
 
+// Interruptor general de la puerta. En false la web es pública y /api/gate
+// deja de existir (404). Javier la quitó el 2026-10-22 para que todo el mundo
+// pueda ver la web; para volver a cerrarla basta con ponerlo en true (las
+// variables SITE_GATE_HASH y SITE_GATE_SECRET siguen en Vercel).
+export const SITE_GATE_ENABLED = false;
+
 export const GATE_COOKIE = "__Host-picota_gate";
 export const GATE_PATH = "/api/gate";
 export const GATE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 días

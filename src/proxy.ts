@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_PATH, ADMIN_PROXY_HEADER } from "@/lib/admin-auth";
-import { GATE_COOKIE, GATE_HEADERS, GATE_PATH, GATE_PUBLIC_ASSETS, gateConfigured, loginPage, verifyToken } from "@/lib/site-gate";
+import {
+  GATE_COOKIE,
+  GATE_HEADERS,
+  GATE_PATH,
+  GATE_PUBLIC_ASSETS,
+  SITE_GATE_ENABLED,
+  gateConfigured,
+  loginPage,
+  verifyToken,
+} from "@/lib/site-gate";
 
 // Reescribe la ruta secreta (ADMIN_PATH_SECRET, solo en variables de
 // entorno, nunca en el repo) hacia /panel, y marca la petición como
@@ -15,7 +24,10 @@ export function proxy(request: NextRequest) {
   // primera y cubre TODO: páginas, imágenes, JS estático y APIs. Lo único
   // abierto es el propio formulario (/api/gate), que se protege solo.
   // Sin configurar en producción => cerrado (503), nunca abierto.
-  if (pathname !== GATE_PATH && !GATE_PUBLIC_ASSETS.includes(pathname)) {
+  if (!SITE_GATE_ENABLED && pathname === GATE_PATH) {
+    return new NextResponse("No encontrado", { status: 404, headers: GATE_HEADERS });
+  }
+  if (SITE_GATE_ENABLED && pathname !== GATE_PATH && !GATE_PUBLIC_ASSETS.includes(pathname)) {
     const configured = gateConfigured();
     if (!configured && process.env.NODE_ENV === "production") {
       return new NextResponse("Servicio no disponible", { status: 503, headers: GATE_HEADERS });
