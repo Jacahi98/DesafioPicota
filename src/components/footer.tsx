@@ -12,12 +12,33 @@ const collaborators = [
     src: "/logo-ayto-pielagos.webp",
     width: 315,
     height: 160,
+    imgClass: "h-12",
   },
   {
     name: "Pasa x Piélagos",
     src: "/logo-pasa-x-pielagos.webp",
     width: 251,
     height: 160,
+  },
+  {
+    // Logo cedido por Dacia (emblema y nombre), con el fondo transparente y
+    // recoloreado al turquesa de los otros dos (#008183) para que las tres
+    // marcas se lean como una tira.
+    name: "Dacia",
+    src: "/logo-dacia.webp",
+    width: 361,
+    height: 160,
+  },
+  {
+    // Logo cedido por Grupo Vidal de la Peña (solo texto, blanco sobre
+    // negro): la luminosidad se pasó a transparencia y se tiñó del mismo
+    // turquesa (#008183).
+    name: "Grupo Vidal de la Peña",
+    src: "/logo-vidal-de-la-pena.webp",
+    width: 1084,
+    height: 160,
+    // Recortado al texto, sin margen: a h-9 se vería mucho mayor que los demás.
+    imgClass: "h-6",
   },
 ];
 
@@ -31,7 +52,7 @@ const REPETITIONS = 10;
 
 const collaboratorStrip = Array.from({ length: REPETITIONS }, () => collaborators).flat();
 
-type Collaborator = (typeof collaborators)[number];
+type Collaborator = { name: string; src: string; width: number; height: number; imgClass?: string };
 
 function CollaboratorBadge({ logo }: { logo: Collaborator }) {
   return (
@@ -44,7 +65,7 @@ function CollaboratorBadge({ logo }: { logo: Collaborator }) {
         height={logo.height}
         loading="lazy"
         decoding="async"
-        className="h-9 w-auto"
+        className={`${logo.imgClass ?? "h-9"} w-auto`}
       />
     </div>
   );

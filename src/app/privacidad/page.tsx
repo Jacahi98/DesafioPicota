@@ -98,7 +98,7 @@ export default function PrivacidadPage() {
               <li>Identificación y contacto: nombre, apellidos, DNI/NIE, fecha de nacimiento, dirección, email y teléfono.</li>
               <li>Talla de camiseta, modalidad elegida, club (si lo indicas) y si estás federado.</li>
               <li>El teléfono de una persona de contacto para casos de emergencia (dato de un tercero, ver más abajo).</li>
-              <li>Si eres menor de 16 o 17 años, la autorización firmada de tu padre, madre o tutor legal, que se entrega en persona.</li>
+              <li>Si eres menor de edad (tienes 16 o 17 años), la autorización firmada de tu padre, madre o tutor legal, que se entrega en persona.</li>
             </List>
             <p>
               No recogemos datos de salud ni datos de pago en este formulario. La licencia federativa no se sube a la
@@ -109,7 +109,7 @@ export default function PrivacidadPage() {
           <Section title="Para qué los usamos">
             <List>
               <li>Gestionar tu preinscripción y reservarte la talla de camiseta y el acceso a la inscripción anticipada.</li>
-              <li>Verificar que cumples los requisitos de participación (edad mínima, autorización de menores, condición de federado).</li>
+              <li>Verificar que cumples los requisitos de participación (edad mínima de 16 años, autorización si eres menor de edad, condición de federado).</li>
               <li>Organizar la prueba: dorsales, avituallamiento y seguro del día.</li>
               <li>Comunicarnos contigo sobre tu preinscripción y la carrera.</li>
               <li>Contactar con la persona de emergencia indicada si ocurre algo durante la prueba.</li>
@@ -158,11 +158,11 @@ export default function PrivacidadPage() {
 
           <Section title="Menores de edad">
             <p>
-              Pueden preinscribirse personas de 16 y 17 años (cumplidos el día de la carrera) con autorización de su
-              padre, madre o tutor legal, que debe entregarse firmada en la recogida de dorsal junto con una
-              fotocopia de su DNI. La organización conserva esa autorización, con los datos de quien la firma, solo
-              para acreditar la participación del menor y durante el mismo plazo que el resto de datos. Por debajo
-              de 16 años no se admiten preinscripciones.
+              Pueden preinscribirse las personas menores de edad (con 16 o 17 años cumplidos el día de la carrera), con
+              autorización de su padre, madre o tutor legal, que debe entregarse firmada en la recogida de dorsal
+              junto con una fotocopia de su DNI. La organización conserva esa autorización, con los datos de quien
+              la firma, solo para acreditar la participación del menor y durante el mismo plazo que el resto de
+              datos. Las personas de menos de 16 años no pueden preinscribirse.
             </p>
           </Section>
 
@@ -204,8 +204,7 @@ export default function PrivacidadPage() {
           <Section title="Analítica y cookies">
             <p>
               La web usa Vercel Analytics y Vercel Speed Insights para medir las visitas y el rendimiento de forma
-              agregada. No utilizamos cookies publicitarias ni de seguimiento. Si accedes con contraseña, se guarda
-              una cookie técnica necesaria para recordar que ya has entrado.
+              agregada. No utilizamos cookies publicitarias ni de seguimiento.
             </p>
           </Section>
 
