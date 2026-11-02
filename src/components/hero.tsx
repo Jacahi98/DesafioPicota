@@ -68,7 +68,7 @@ export function Hero() {
           >
             <Link
               href="/preinscripcion"
-              className="inline-flex items-center gap-2 rounded-sm bg-[var(--pine)] px-8 py-3.5 text-base font-semibold text-[var(--pine-ink)] transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-sm bg-[var(--pine)] px-8 py-3.5 text-base font-semibold uppercase tracking-wider text-[var(--pine-ink)] transition-opacity hover:opacity-90"
             >
               <UserPlus size={18} className="shrink-0" aria-hidden />
               Preinscripción
