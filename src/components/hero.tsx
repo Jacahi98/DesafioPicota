@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
+import { UserPlus } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { routeStats } from "@/data/route-track";
 import { Logo } from "@/components/core/logo";
@@ -56,15 +58,22 @@ export function Hero() {
             </motion.h1>
           </div>
 
-          <motion.p
+          {/* Botón de preinscripción, donde antes iba el párrafo de presentación. Sin el círculo de cuenta atrás que lleva el
+              menú: aquí va limpio. */}
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="mt-7 max-w-lg text-justify text-[17px] leading-relaxed text-[var(--text-dim)]"
+            className="mt-8 flex justify-center"
           >
-            Un trail costero por Cantabria, entre acantilados y pinares, hasta el mirador
-            de Monte Picota, con la ría de Mogro abriéndose debajo.
-          </motion.p>
+            <Link
+              href="/preinscripcion"
+              className="inline-flex items-center gap-2 rounded-sm bg-[var(--pine)] px-8 py-3.5 text-base font-semibold text-[var(--pine-ink)] transition-opacity hover:opacity-90"
+            >
+              <UserPlus size={18} className="shrink-0" aria-hidden />
+              Preinscripción
+            </Link>
+          </motion.div>
         </div>
 
         {/* CTA y estadísticas van juntos como grupo: apilados y centrados en

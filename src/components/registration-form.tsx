@@ -152,7 +152,9 @@ export function RegistrationForm() {
     setV((prev) => ({ ...prev, [key]: value }));
     setClientErrors((prev) => {
       if (!(key in prev)) return prev;
-      const { [key]: _removed, ...rest } = prev;
+      // Se quita el error de este campo, que acaba de editarse.
+      const rest = { ...prev };
+      delete rest[key];
       return rest;
     });
   };
@@ -323,6 +325,22 @@ export function RegistrationForm() {
                 className={inputClass}
               />
             </Field>
+            {/* Talla junto a la fecha de nacimiento: así no quedan dos filas a medias (fecha sola y talla sola). */}
+            <Field label="Talla de camiseta" name="shirtSize" error={errors.shirtSize}>
+              <select
+                id="shirtSize"
+                value={v.shirtSize}
+                onChange={(e) => set("shirtSize", e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Elige tu talla</option>
+                {SHIRT_SIZES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </Field>
             {needsGuardianConsent(v.birthDate) && (
               <div className="sm:col-span-2">
                 <GuardianNotice />
@@ -376,21 +394,6 @@ export function RegistrationForm() {
               <p className="mt-1 text-xs text-[var(--text-faint)]">
                 Solo se usará para avisar a esta persona en una emergencia durante la prueba. Debes haberle informado.
               </p>
-            </Field>
-            <Field label="Talla de camiseta" name="shirtSize" error={errors.shirtSize}>
-              <select
-                id="shirtSize"
-                value={v.shirtSize}
-                onChange={(e) => set("shirtSize", e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Elige tu talla</option>
-                {SHIRT_SIZES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
             </Field>
           </div>
         </div>

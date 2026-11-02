@@ -29,6 +29,9 @@ export const metadata: Metadata = {
 // ofrecerse enseguida. Cuesta una consulta a la BD por minuto como mucho.
 export const revalidate = 60;
 
+// "Lunes 9 de noviembre…" -> "lunes 9 de noviembre…" para usarlo en mitad de una frase.
+const enMinuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
 const NOTICE_CLASS =
   "mt-6 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm text-[var(--text-dim)]";
 
@@ -36,13 +39,6 @@ export default async function PreinscripcionPage() {
   const open = isRegistrationOpen();
   const phase = registrationPhase();
   const testMode = isTestOpen();
-  const opensLabel = new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Madrid",
-  }).format(REGISTRATION_OPENS_AT);
-
   // Si la BD falla se trata como "no agotado": registerAction sigue siendo la
   // autoridad y rechaza el envío si de verdad no quedan plazas.
   let soldOut = false;
@@ -73,13 +69,14 @@ export default async function PreinscripcionPage() {
             </p>
             <div className="mt-6 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]">
               <p>
-                <strong className="text-[var(--ink)]">La preinscripción te asegura tu talla de camiseta y tu inscripción.</strong>{" "}
-                Las inscripciones abren el 14 de enero de 2027, y las personas preinscritas podrán inscribirse un día
-                antes, el 13 de enero.
+                <strong className="text-[var(--ink)]">La preinscripción te asegura tu talla de camiseta, tu inscripción y un regalo.</strong>{" "}
+                Ahora solo rellenarás tus datos:{" "}
+                <strong className="text-base text-[var(--ink)]">no se hará ningún pago</strong>. El pago se hará en la
+                inscripción.
               </p>
-              <p className="mt-2">
-                Ahora solo rellenarás tus datos: <strong className="text-[var(--ink)]">no se hará ningún pago</strong>.
-                El pago se hará en la inscripción.
+              <p className="mt-4">
+                Las inscripciones abren el 14 de enero de 2027 y las personas preinscritas podrán hacerlo un día antes, el
+                13 de enero.
               </p>
             </div>
 
@@ -98,7 +95,7 @@ export default async function PreinscripcionPage() {
                 )}
                 <p className={NOTICE_CLASS}>
                   {phase === "before"
-                    ? `Las preinscripciones se abrirán el ${opensLabel} y estarán abiertas solo 48 horas.`
+                    ? `Las preinscripciones se abrirán el ${enMinuscula(madridDateTimeLabel(REGISTRATION_OPENS_AT))} y estarán abiertas hasta el ${enMinuscula(madridDateTimeLabel(REGISTRATION_DEADLINE))}.`
                     : "El plazo de preinscripción ya se ha cerrado."}
                 </p>
               </>
