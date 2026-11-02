@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
+import { RunStory } from "@/components/run-story";
 import { RouteSection } from "@/components/route-section";
 import { Footer } from "@/components/footer";
 
@@ -8,6 +9,7 @@ export default function Home() {
     <>
       <Header />
       <Hero />
+      <RunStory />
       <RouteSection />
       <Footer />
     </>
