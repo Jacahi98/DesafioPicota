@@ -29,6 +29,18 @@ import { buildTrackProgress, gainAtFraction } from "@/lib/track-progress";
 const trekkingProgress = buildTrackProgress(routeTrack, routeStats.distanceM, routeStats.gainM);
 const andarinesProgress = buildTrackProgress(andarinesTrack, andarinesStats.distanceM, andarinesStats.gainM);
 
+// Proporción (ancho/alto) que ocupa el recorrido en el mapa, con los dos trazados juntos para que las dos
+// modalidades repartan igual las columnas. Con ella el mapa pide el ancho que necesita su alto: en una ventana
+// alta el 25% fijo lo dejaba como una tira estrecha donde el recorrido no se veía entero.
+const ROUTE_ASPECT = (() => {
+  const pts = [...routeTrack, ...andarinesTrack];
+  const lngs = pts.map((p) => p[0]);
+  const lats = pts.map((p) => p[1]);
+  const latSpan = Math.max(...lats) - Math.min(...lats);
+  const midLat = (Math.max(...lats) + Math.min(...lats)) / 2;
+  return ((Math.max(...lngs) - Math.min(...lngs)) * Math.cos((midLat * Math.PI) / 180)) / latSpan;
+})();
+
 function round1(v: number) {
   return Math.round(v * 10) / 10;
 }
@@ -189,6 +201,22 @@ function RouteStage({
   onHoverIndex: (index: number | null) => void;
 }) {
   const [expanded, setExpanded] = useState<"map" | "profile" | null>(null);
+  // Fracción del ancho para el mapa: la que necesita su alto para enseñar el recorrido entero (ROUTE_ASPECT), con un
+  // mínimo del 25% de siempre y un máximo del 50% para que el perfil no desaparezca.
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const [mapFraction, setMapFraction] = useState(0.25);
+  useEffect(() => {
+    const el = columnsRef.current;
+    if (!el || isMobile) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width <= 0) return;
+      const f = Math.round(Math.min(0.5, Math.max(0.25, (ROUTE_ASPECT * height * 1.08) / width)) * 100) / 100;
+      setMapFraction(f);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile]);
   // El 25%/75% "puro" más el gap de 1.25rem entre columnas suma más del
   // 100% del contenedor (framer-motion fija esto como width inline, así
   // que una regla CSS con calc() no sirve de nada aquí — pierde siempre
@@ -201,9 +229,9 @@ function RouteStage({
   // quedaba recortado por el clip-path del comparador de arriba. Restar el
   // gap completo (no la mitad) cuando está ampliado corrige eso.
   const mapWidth =
-    expanded === "profile" ? "0%" : expanded === "map" ? "calc(100% - 1.25rem)" : "calc(25% - 0.625rem)";
+    expanded === "profile" ? "0%" : expanded === "map" ? "calc(100% - 1.25rem)" : `calc(${mapFraction * 100}% - 0.625rem)`;
   const profileWidth =
-    expanded === "map" ? "0%" : expanded === "profile" ? "calc(100% - 1.25rem)" : "calc(75% - 0.625rem)";
+    expanded === "map" ? "0%" : expanded === "profile" ? "calc(100% - 1.25rem)" : `calc(${(1 - mapFraction) * 100}% - 0.625rem)`;
 
   return isMobile ? (
     <div className="route-stage-mobile">
@@ -228,7 +256,7 @@ function RouteStage({
       </div>
     </div>
   ) : (
-    <div className="route-columns">
+    <div className="route-columns" ref={columnsRef}>
       <motion.div
         className="route-map-col relative overflow-hidden"
         animate={{ width: mapWidth, opacity: expanded === "profile" ? 0 : 1 }}

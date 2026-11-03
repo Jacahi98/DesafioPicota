@@ -24,7 +24,7 @@ const plexMono = IBM_Plex_Mono({
 // párrafo del hero a propósito — antes hablaba de "dunas"/"arena" y de "La
 // Picota", que ya se corrigieron en la web por no ser exactos.
 const SITE_DESCRIPTION =
-  "Un trail costero por Cantabria, entre acantilados y pinares, hasta el mirador de Monte Picota, con la ría de Mogro abriéndose debajo. 13,1 km y 372 m de desnivel positivo en Liencres.";
+  "Un trail costero por Cantabria, entre acantilados y pinares, hasta el mirador de Monte Picota, con la ría de Mogro abriéndose debajo. 14,1 km y 382 m de desnivel positivo en Liencres.";
 
 export const metadata: Metadata = {
   // metadataBase resuelve las rutas relativas de abajo a URLs absolutas:

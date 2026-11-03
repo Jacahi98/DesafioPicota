@@ -30,6 +30,9 @@ import pkg from "./package.json";
 // usa en producción, así que la CSP real desplegada no lo necesita — visto
 // en la consola del propio navegador con el mensaje exacto: "eval() is not
 // supported... React requires eval() in development mode".
+// Solo en desarrollo se omite upgrade-insecure-requests: en http://localhost los navegadores lo ignoran, pero al abrir el
+// servidor de desarrollo desde el móvil por la IP de la red (http://192.168.x.x) el móvil pasa CSS y JS a https, que no
+// existe, y la página se queda en blanco y sin estilos. En producción se mantiene.
 const isDev = process.env.NODE_ENV === "development";
 
 const cspHeader = `
@@ -43,7 +46,7 @@ const cspHeader = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  upgrade-insecure-requests;
+  ${isDev ? "" : "upgrade-insecure-requests;"}
 `
   .replace(/\s{2,}/g, " ")
   .trim();
