@@ -232,8 +232,7 @@ export function RouteMap({
   const {
     points,
     pathD,
-    cumulativeLengths,
-    pathTotalLength,
+    pathSegs,
     distFractions,
     summitX,
     summitY,
@@ -242,20 +241,11 @@ export function RouteMap({
     summitFraction,
   } = useMemo(() => {
     const pts = track.map(([lng, lat]) => project(lng, lat));
-    const d = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-
-    // Longitud acumulada del trazado EN PÍXELES (suma de segmentos
-    // proyectados) — solo para el stroke-dasharray/dashoffset a mano (el
-    // pathLength de Framer Motion emite dasharray en px, lo que rompe la
-    // normalización). No es la distancia real: es la aproximación
-    // geométrica de la proyección en pantalla.
-    const cum: number[] = [0];
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
-      cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
-    }
-    const total = cum[cum.length - 1];
+    // Un trozo de texto por punto: el trazado ya recorrido se pinta como un path propio que llega solo hasta el punto
+    // actual (ver partialD). Antes se hacía con stroke-dasharray/dashoffset sobre el trazado entero, y en Safari de
+    // iPhone, con tantos puntos, salían varios tramos sueltos pintados a la vez en vez de una sola línea que avanza.
+    const segs = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+    const d = segs.join(" ");
 
     // Fracción de DISTANCIA REAL recorrida (dato GPS, track[i][3] en
     // metros) en cada punto — el parámetro de avance de verdad. drawProgress
@@ -270,8 +260,7 @@ export function RouteMap({
     return {
       points: pts,
       pathD: d,
-      cumulativeLengths: cum,
-      pathTotalLength: total,
+      pathSegs: segs,
       distFractions: fracs,
       summitX: sx,
       summitY: sy,
@@ -306,17 +295,30 @@ export function RouteMap({
     return [x0 + (x1 - x0) * segFrac, y0 + (y1 - y0) * segFrac];
   }
 
-  function pixelLengthAtFraction(frac: number): number {
+  // Trazado recorrido hasta una fracción de distancia 0–1: los puntos ya pasados más el punto interpolado en el tramo
+  // actual. Es un path normal, sin trucos de dash, así que se ve igual en todos los navegadores.
+  function partialD(frac: number): string {
+    if (frac <= 0) return pathSegs[0];
     const { i, segFrac } = bracketAtFraction(frac);
-    const segStart = cumulativeLengths[i - 1];
-    const segEnd = cumulativeLengths[i];
-    return segStart + (segEnd - segStart) * segFrac;
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    const x = x0 + (x1 - x0) * segFrac;
+    const y = y0 + (y1 - y0) * segFrac;
+    return `${pathSegs.slice(0, i).join(" ")} L${x.toFixed(1)},${y.toFixed(1)}`;
   }
 
   const hovered = hoveredIndex !== null ? points[hoveredIndex] : null;
 
   const summitOpacity = useTransform(drawProgress, [summitFraction, summitFraction + 0.01], [0, 1]);
-  const dashOffset = useTransform(drawProgress, (v) => pathTotalLength - pixelLengthAtFraction(v));
+  const drawnPathRef = useRef<SVGPathElement>(null);
+  useEffect(() => {
+    const el = drawnPathRef.current;
+    if (!el) return;
+    const update = (v: number) => el.setAttribute("d", partialD(v));
+    update(drawProgress.get());
+    return drawProgress.on("change", update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawProgress, points, pathSegs, distFractions]);
 
   // A distancia 0% el trazado real (motion.path de abajo) está totalmente
   // oculto por su propio dashOffset — no hay nada de "línea" visible salvo
@@ -508,7 +510,7 @@ export function RouteMap({
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawProgress, aspect, waypointOpen, points, cumulativeLengths, distFractions]);
+  }, [drawProgress, aspect, waypointOpen, points, distFractions]);
 
   return (
     // Inclinación 3D que sigue al cursor — efecto "tarjeta" claramente
@@ -575,14 +577,11 @@ export function RouteMap({
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <motion.path
-            d={pathD}
+          <path
+            ref={drawnPathRef}
+            d={pathSegs[0]}
             fill="none"
-            style={{
-              stroke: "var(--accent-rose)",
-              strokeDasharray: pathTotalLength,
-              strokeDashoffset: dashOffset,
-            }}
+            style={{ stroke: "var(--accent-rose)" }}
             strokeWidth="2.75"
             strokeLinecap="round"
             strokeLinejoin="round"

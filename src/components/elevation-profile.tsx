@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { motion, useTransform, type MotionValue } from "framer-motion";
+import { type MotionValue } from "framer-motion";
 
 type TrackPoint = readonly [number, number, number, number];
 
@@ -143,34 +143,22 @@ export function ElevationProfile({
 
   const {
     linePoints,
-    lineD,
-    areaD,
-    cumulativeLengths,
-    lineTotalLength,
+    lineSegs,
     summitPoint,
     distFractions,
     summitFraction,
   } = useMemo(() => {
     const x = (distM: number) => padLeft + (distM / distanceM) * (vw - padLeft);
     const pts = track.map(([, , ele, dist]) => [x(dist), y(ele)] as const);
-    const line = pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
-    const area = `${line} L${vw},${VH - padBottom} L${padLeft},${VH - padBottom} Z`;
-
-    const cum: number[] = [0];
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
-      cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
-    }
+    // Un trozo de texto por punto: la línea y el relleno se pintan solo hasta el punto actual (ver el efecto de más
+    // abajo), sin stroke-dasharray, que en Safari de iPhone pintaba varios tramos a la vez.
+    const lineSegs = pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`);
 
     const fracs = track.map((p) => p[3] / distanceM);
 
     return {
       linePoints: pts,
-      lineD: line,
-      areaD: area,
-      cumulativeLengths: cum,
-      lineTotalLength: cum[cum.length - 1],
+      lineSegs,
       summitPoint: pts[summitIndex],
       distFractions: fracs,
       summitFraction: fracs[summitIndex],
@@ -210,8 +198,6 @@ export function ElevationProfile({
   const hoveredTrack = hoveredIndex !== null ? track[hoveredIndex] : null;
   const [summitX, summitY] = summitPoint;
 
-  const areaOpacity = useTransform(drawProgress, [0, 0.3], [0, 1]);
-
   // summitFraction y lineTotalLength dependen de vw (se recalculan al medir
   // la tarjeta). Se probó con useTransform (de una fuente, luego de varias
   // fuentes envolviendo estos valores en motion values) y las dos veces se
@@ -224,24 +210,37 @@ export function ElevationProfile({
   // directo con los valores vigentes cada vez que cambia drawProgress O
   // estos, sin intermediarios.
   const linePathRef = useRef<SVGPathElement>(null);
+  const areaPathRef = useRef<SVGPathElement>(null);
   const summitRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
     const linePath = linePathRef.current;
+    const areaPath = areaPathRef.current;
     const summit = summitRef.current;
-    if (!linePath || !summit) return;
+    if (!linePath || !areaPath || !summit) return;
+    const baseY = VH - padBottom;
     const update = (v: number) => {
-      const { i, segFrac } = bracketAtFraction(v);
-      const segStart = cumulativeLengths[i - 1];
-      const segEnd = cumulativeLengths[i];
-      const pixelLength = segStart + (segEnd - segStart) * segFrac;
-      linePath.style.strokeDashoffset = `${lineTotalLength - pixelLength}`;
+      // Línea y relleno llegan hasta el punto actual: el relleno crece con la línea y no aparece entero de golpe.
+      let partial: string;
+      let xEnd: number;
+      if (v <= 0) {
+        partial = lineSegs[0];
+        xEnd = linePoints[0][0];
+      } else {
+        const { i, segFrac } = bracketAtFraction(v);
+        const [x0, y0] = linePoints[i - 1];
+        const [x1, y1] = linePoints[i];
+        xEnd = x0 + (x1 - x0) * segFrac;
+        partial = `${lineSegs.slice(0, i).join(" ")} L${xEnd.toFixed(1)},${(y0 + (y1 - y0) * segFrac).toFixed(1)}`;
+      }
+      linePath.setAttribute("d", partial);
+      areaPath.setAttribute("d", `${partial} L${xEnd.toFixed(1)},${baseY} L${linePoints[0][0].toFixed(1)},${baseY} Z`);
       summit.style.opacity = `${v >= summitFraction ? Math.min(1, (v - summitFraction) / 0.01) : 0}`;
     };
     update(drawProgress.get());
     return drawProgress.on("change", update);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawProgress, lineTotalLength, cumulativeLengths, distFractions, summitFraction]);
+  }, [drawProgress, lineSegs, linePoints, distFractions, summitFraction, padBottom]);
 
   return (
     <div ref={wrapRef} className="route-profile-svg-wrap overflow-hidden rounded-sm border border-[var(--border)] p-3">
@@ -273,16 +272,12 @@ export function ElevationProfile({
           />
         ))}
 
-        <motion.path d={areaD} fill="url(#elevation-fill)" style={{ opacity: areaOpacity }} />
+        <path ref={areaPathRef} d={lineSegs[0]} fill="url(#elevation-fill)" />
         <path
           ref={linePathRef}
-          d={lineD}
+          d={lineSegs[0]}
           fill="none"
-          style={{
-            stroke: "var(--pine)",
-            strokeDasharray: lineTotalLength,
-            strokeDashoffset: lineTotalLength,
-          }}
+          style={{ stroke: "var(--pine)" }}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
