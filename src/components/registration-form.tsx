@@ -127,7 +127,7 @@ function Choice({
   );
 }
 
-export function RegistrationForm() {
+export function RegistrationForm({ testToken }: { testToken?: string } = {}) {
   const [state, formAction, isPending] = useActionState(registerAction, initialRegisterState);
   const [step, setStep] = useState(0);
   const [v, setV] = useState<Values>(emptyValues);
@@ -206,6 +206,7 @@ export function RegistrationForm() {
       ))}
       {v.privacyConsent && <input type="hidden" name="privacyConsent" value="on" />}
       {v.clubConsent && <input type="hidden" name="clubConsent" value="on" />}
+      {testToken && <input type="hidden" name="testToken" value={testToken} />}
       <input ref={startedRef} type="hidden" name="startedAt" />
       <input ref={submittedRef} type="hidden" name="submittedAt" />
       {/* Trampa para bots: fuera de pantalla (no display:none, que los bots

@@ -21,13 +21,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/preinscripcion" },
 };
 
-// Sin esto la página se genera estática en el build y los avisos de "plazo
-// cerrado" y de "plazas agotadas" quedan congelados con la situación de aquel
-// momento — el envío en sí se revalida en el server action (registerAction),
-// así que esto es solo para que el aviso en pantalla se ponga al día solo.
-// 60 s (y no más): al acabarse las plazas el formulario tiene que dejar de
-// ofrecerse enseguida. Cuesta una consulta a la BD por minuto como mucho.
-export const revalidate = 60;
+// Se renderiza en cada petición. Con una página en caché (antes revalidate = 60)
+// el aviso podía seguir diciendo "abre en…" hasta un minuto después de las 11:00:
+// el reloj llega a cero, pide la página y recibe la copia vieja. Así la fase
+// (antes / abierta / cerrada) y los avisos de plazo y de plazas agotadas salen
+// siempre de la hora real del servidor. El envío en sí lo revalida registerAction.
+export const dynamic = "force-dynamic";
 
 // "Lunes 9 de noviembre…" -> "lunes 9 de noviembre…" para usarlo en mitad de una frase.
 const enMinuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);

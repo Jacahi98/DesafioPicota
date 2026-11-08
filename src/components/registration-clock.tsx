@@ -58,10 +58,17 @@ export function RegistrationClock({ phase, opensAt, closesAt, opensLabel, closes
   const finished = left !== null && left <= 0 && !testMode;
 
   // Al llegar a cero se vuelve a pedir la página: abre el formulario o lo cierra.
+  // Se repite cada 4 s hasta que la página cambie (este componente deja de
+  // existir o cambia de fase): si la primera petición llegara antes de que el
+  // servidor dé la hora por buena, el reloj no se quedaría clavado en 00:00:00.
   useEffect(() => {
     if (!finished) return;
-    const id = setTimeout(() => router.refresh(), 1500);
-    return () => clearTimeout(id);
+    const first = setTimeout(() => router.refresh(), 1500);
+    const again = setInterval(() => router.refresh(), 4000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(again);
+    };
   }, [finished, router]);
 
   return (

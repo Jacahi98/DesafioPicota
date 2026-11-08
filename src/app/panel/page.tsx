@@ -9,6 +9,19 @@ import { loginAction, logoutAction, setPaymentStatusAction } from "@/app/panel/a
 import { PatternGate } from "@/app/panel/pattern-gate";
 import { PatternSetup } from "@/app/panel/pattern-setup";
 import { TerminalBoot } from "@/components/terminal-boot";
+import { AutoRefresh } from "@/components/auto-refresh";
+
+// Fecha y hora en hora de España (el servidor corre en UTC).
+const fmtMadrid = (d: Date, withSeconds = false) =>
+  d.toLocaleString("es-ES", {
+    timeZone: "Europe/Madrid",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(withSeconds ? { second: "2-digit" } : {}),
+    hourCycle: "h23",
+  });
 
 export const metadata: Metadata = {
   title: "Desafío Picota",
@@ -26,6 +39,18 @@ const STATUS_COLOR: Record<string, string> = {
   confirmed: "text-[var(--pine)] glow",
   cancelled: "text-[var(--accent-rose)]",
 };
+
+// Cifras del panel en vivo. Función aparte (la página es dinámica: se calcula
+// con la hora de cada petición); `fechas` llega ordenada de más reciente a más antigua.
+function resumenEnVivo(fechas: Date[]) {
+  const ahora = Date.now();
+  const hace = (ms: number) => fechas.filter((d) => ahora - d.getTime() < ms).length;
+  return {
+    ultimaHora: hace(60 * 60 * 1000),
+    ultimas24h: hace(24 * 60 * 60 * 1000),
+    ultima: fechas[0] ? fmtMadrid(fechas[0], true) : null,
+  };
+}
 
 const LOGIN_BOOT_LINES = ["patrón aceptado", "identifícate para continuar"];
 
@@ -91,9 +116,11 @@ export default async function AdminPage({
     .where(isNull(registrations.deletedAt))
     .orderBy(desc(registrations.createdAt));
 
+  const { ultimaHora, ultimas24h, ultima } = resumenEnVivo(rows.map((r) => new Date(r.createdAt)));
+
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 sm:px-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="glow font-mono text-2xl font-semibold text-[var(--ink)]">
             {adminLabel(adminId).toLowerCase()}@picota<span className="admin-caret" />
@@ -102,6 +129,9 @@ export default async function AdminPage({
             {"// "}
             {rows.length} preinscripciones cargadas
           </p>
+          <div className="mt-3">
+            <AutoRefresh />
+          </div>
         </div>
         <form action={logoutAction}>
           <button
@@ -111,6 +141,20 @@ export default async function AdminPage({
             [ salir ]
           </button>
         </form>
+      </div>
+
+      <div className="mt-8 grid grid-cols-2 gap-3 font-mono sm:grid-cols-4">
+        {[
+          ["total", String(rows.length)],
+          ["última hora", String(ultimaHora)],
+          ["últimas 24 h", String(ultimas24h)],
+          ["última recibida", ultima ?? "—"],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">{label}</p>
+            <p className="mt-1 text-xl text-[var(--ink)]">{value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="mt-8">
@@ -164,7 +208,7 @@ export default async function AdminPage({
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
                 <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-faint)]">
-                  {new Date(r.createdAt).toLocaleDateString("es-ES")}
+                  {fmtMadrid(new Date(r.createdAt))}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-[var(--ink)]">
                   {r.firstName} {r.lastName}
