@@ -72,8 +72,8 @@ export function AutoRefresh({ everyMs = 15000 }: { everyMs?: number }) {
   const secs = now !== null && lastAt !== null ? Math.max(0, Math.round((now - lastAt) / 1000)) : null;
 
   return (
-    <div className="flex items-center gap-3 font-mono text-xs text-[var(--text-dim)]">
-      <span className="inline-flex items-center gap-2">
+    <div className="flex flex-col gap-1.5 font-mono text-xs text-[var(--text-dim)] sm:flex-row sm:items-center sm:gap-4">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
         <span
           aria-hidden="true"
           className={`inline-block h-2 w-2 rounded-full ${live ? "bg-[var(--pine)]" : "bg-[var(--text-faint)]"}`}
@@ -81,16 +81,18 @@ export function AutoRefresh({ everyMs = 15000 }: { everyMs?: number }) {
         {live ? "en vivo" : "pausado"}
         {secs !== null && <span className="text-[var(--text-faint)]">· actualizado hace {secs} s</span>}
       </span>
-      <button
-        type="button"
-        onClick={() => setLive((v) => !v)}
-        className="underline underline-offset-2 hover:text-[var(--ink)]"
-      >
-        [ {live ? "pausar" : "reanudar"} ]
-      </button>
-      <button type="button" onClick={refresh} className="underline underline-offset-2 hover:text-[var(--ink)]">
-        [ actualizar ya ]
-      </button>
+      <span className="inline-flex items-center gap-4 whitespace-nowrap">
+        <button
+          type="button"
+          onClick={() => setLive((v) => !v)}
+          className="py-1 underline underline-offset-2 hover:text-[var(--ink)]"
+        >
+          [ {live ? "pausar" : "reanudar"} ]
+        </button>
+        <button type="button" onClick={refresh} className="py-1 underline underline-offset-2 hover:text-[var(--ink)]">
+          [ actualizar ya ]
+        </button>
+      </span>
     </div>
   );
 }

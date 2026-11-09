@@ -5,11 +5,13 @@ import { getDb } from "@/db";
 import { registrations, adminPatternConfig } from "@/db/schema";
 import { isValidSession, isValidPatternGate, adminLabel, ADMIN_COOKIE, PATTERN_GATE_COOKIE } from "@/lib/admin-auth";
 import { MODALITIES, formatPrice, needsGuardianConsent } from "@/lib/registration";
-import { loginAction, logoutAction, setPaymentStatusAction } from "@/app/panel/actions";
+import { REGISTRATION_OPENS_AT, REGISTRATION_DEADLINE } from "@/lib/registration-window";
+import { loginAction, logoutAction } from "@/app/panel/actions";
 import { PatternGate } from "@/app/panel/pattern-gate";
 import { PatternSetup } from "@/app/panel/pattern-setup";
 import { TerminalBoot } from "@/components/terminal-boot";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { PanelView, type PanelRow, type Bucket } from "@/components/panel-view";
 
 // Fecha y hora en hora de España (el servidor corre en UTC).
 const fmtMadrid = (d: Date, withSeconds = false) =>
@@ -28,18 +30,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: "pendiente",
-  confirmed: "pagado",
-  cancelled: "cancelado",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  pending: "text-[var(--text-dim)]",
-  confirmed: "text-[var(--pine)] glow",
-  cancelled: "text-[var(--accent-rose)]",
-};
-
 // Cifras del panel en vivo. Función aparte (la página es dinámica: se calcula
 // con la hora de cada petición); `fechas` llega ordenada de más reciente a más antigua.
 function resumenEnVivo(fechas: Date[]) {
@@ -50,6 +40,24 @@ function resumenEnVivo(fechas: Date[]) {
     ultimas24h: hace(24 * 60 * 60 * 1000),
     ultima: fechas[0] ? fmtMadrid(fechas[0], true) : null,
   };
+}
+
+// Preinscripciones por hora de la ventana (de la apertura al cierre) y reloj del
+// servidor. Función aparte: la página es dinámica y esto depende de la hora.
+function datosDeGraficas(fechas: Date[]): { buckets: Bucket[]; nowMs: number; beforeOpening: number } {
+  const start = REGISTRATION_OPENS_AT.getTime();
+  const n = Math.max(1, Math.round((REGISTRATION_DEADLINE.getTime() - start) / 3600000));
+  const buckets: Bucket[] = Array.from({ length: n }, (_, i) => ({ t: start + i * 3600000, n: 0 }));
+  let beforeOpening = 0;
+  for (const d of fechas) {
+    const t = d.getTime();
+    if (t < start) beforeOpening++;
+    else {
+      const i = Math.floor((t - start) / 3600000);
+      if (i < n) buckets[i].n++;
+    }
+  }
+  return { buckets, nowMs: Date.now(), beforeOpening };
 }
 
 const LOGIN_BOOT_LINES = ["patrón aceptado", "identifícate para continuar"];
@@ -116,7 +124,32 @@ export default async function AdminPage({
     .where(isNull(registrations.deletedAt))
     .orderBy(desc(registrations.createdAt));
 
-  const { ultimaHora, ultimas24h, ultima } = resumenEnVivo(rows.map((r) => new Date(r.createdAt)));
+  const fechas = rows.map((r) => new Date(r.createdAt));
+  const { ultimaHora, ultimas24h, ultima } = resumenEnVivo(fechas);
+  const { buckets, nowMs, beforeOpening } = datosDeGraficas(fechas);
+  const panelRows: PanelRow[] = rows.map((r) => ({
+    id: r.id,
+    createdAt: new Date(r.createdAt).toISOString(),
+    modality: r.modality,
+    modalityLabel: MODALITIES[r.modality].label,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    dni: r.dni,
+    email: r.email,
+    phone: r.phone,
+    emergencyPhone: r.emergencyPhone,
+    address: r.address,
+    shirtSize: r.shirtSize,
+    club: r.club,
+    federated: r.federated,
+    licenseNumber: r.licenseNumber,
+    licenseVerified: r.licenseVerified,
+    priceLabel: formatPrice(r.priceCents),
+    paymentReference: r.paymentReference,
+    paymentStatus: r.paymentStatus,
+    paymentUpdatedBy: r.paymentUpdatedBy,
+    minor: needsGuardianConsent(r.birthDate),
+  }));
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 sm:px-8">
@@ -143,19 +176,29 @@ export default async function AdminPage({
         </form>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 font-mono sm:grid-cols-4">
+      <div className="mt-8 grid grid-cols-3 gap-2 font-mono sm:grid-cols-4 sm:gap-3">
         {[
           ["total", String(rows.length)],
           ["última hora", String(ultimaHora)],
           ["últimas 24 h", String(ultimas24h)],
           ["última recibida", ultima ?? "—"],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">{label}</p>
-            <p className="mt-1 text-xl text-[var(--ink)]">{value}</p>
+          <div
+            key={label}
+            className={`rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-3 py-2.5 sm:px-4 sm:py-3 ${label === "última recibida" ? "col-span-3 sm:col-span-1" : ""}`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--sea)] sm:text-[11px]">{label}</p>
+            <p className="mt-1 text-lg text-[var(--ink)] sm:text-lg lg:text-xl">{value}</p>
           </div>
         ))}
       </div>
+
+      <PanelView
+        rows={panelRows}
+        buckets={buckets}
+        nowMs={nowMs}
+        beforeOpening={beforeOpening}
+      />
 
       <div className="mt-8">
         <p className="mb-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">
@@ -173,127 +216,6 @@ export default async function AdminPage({
         />
       </div>
 
-      <div className="mt-8 overflow-x-auto rounded-sm border border-[var(--border)] shadow-[var(--shadow)]">
-        <table className="w-full min-w-[1380px] border-collapse font-mono text-sm">
-          <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--paper-raised)] text-left">
-              {[
-                "fecha",
-                "nombre",
-                "modalidad",
-                "dni",
-                "email",
-                "teléfono",
-                "teléfono emergencia",
-                "dirección",
-                "talla",
-                "club",
-                "federado",
-                "importe",
-                "referencia",
-                "estado",
-                "actualizado por",
-                "",
-              ].map((h) => (
-                <th
-                  key={h}
-                  className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-faint)]">
-                  {fmtMadrid(new Date(r.createdAt))}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--ink)]">
-                  {r.firstName} {r.lastName}
-                  {needsGuardianConsent(r.birthDate) && (
-                    <span className="ml-2 text-xs text-[var(--accent-rose)]" title="Entregar autorización firmada en la recogida de dorsal">
-                      menor · autorización
-                    </span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">
-                  {MODALITIES[r.modality].label}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-dim)]">{r.dni}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.email}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.phone}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.emergencyPhone || "—"}</td>
-                <td className="max-w-[240px] truncate px-3 py-2.5 text-[var(--text-dim)]" title={r.address}>
-                  {r.address || "—"}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.shirtSize || "—"}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-dim)]">{r.club || "—"}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-dim)]">
-                  {r.federated ? (
-                    <>
-                      <span className="text-[var(--ink)]">Sí{r.licenseNumber ? ` · ${r.licenseNumber}` : ""}</span>
-                      {!r.licenseVerified && <span className="ml-2 text-[var(--accent-rose)]">sin verificar</span>}
-                    </>
-                  ) : (
-                    "No"
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-[var(--ink)]">{formatPrice(r.priceCents)}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--ink)]">{r.paymentReference}</td>
-                <td className={`whitespace-nowrap px-3 py-2.5 font-medium ${STATUS_COLOR[r.paymentStatus]}`}>
-                  {STATUS_LABEL[r.paymentStatus]}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-[var(--text-faint)]">
-                  {r.paymentUpdatedBy?.toLowerCase() || "—"}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
-                  <div className="flex gap-3">
-                    {r.paymentStatus !== "confirmed" && (
-                      <form action={setPaymentStatusAction}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="status" value="confirmed" />
-                        <button type="submit" className="text-xs text-[var(--pine)] underline underline-offset-2">
-                          [ marcar pagado ]
-                        </button>
-                      </form>
-                    )}
-                    {r.paymentStatus !== "pending" && (
-                      <form action={setPaymentStatusAction}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="status" value="pending" />
-                        <button type="submit" className="text-xs text-[var(--text-dim)] underline underline-offset-2">
-                          [ pendiente ]
-                        </button>
-                      </form>
-                    )}
-                    {r.paymentStatus !== "cancelled" && (
-                      <form action={setPaymentStatusAction}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="status" value="cancelled" />
-                        <button
-                          type="submit"
-                          className="text-xs text-[var(--accent-rose)] underline underline-offset-2"
-                        >
-                          [ cancelar ]
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={16} className="px-3 py-8 text-center text-[var(--text-faint)]">
-                  {"// todavía no hay preinscripciones"}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </main>
   );
 }
