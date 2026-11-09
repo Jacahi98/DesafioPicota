@@ -30,7 +30,18 @@ export type PanelRow = {
   paymentStatus: "pending" | "confirmed" | "cancelled";
   paymentUpdatedBy: string | null;
   minor: boolean;
+  emailStatus: string | null;
 };
+
+const MAIL_LABEL: Record<string, string> = {
+  delivered: "entregado",
+  bounced: "rebotado",
+  delayed: "retrasado",
+  complained: "marcado como spam",
+  failed: "fallido",
+};
+const MAIL_ALERT = ["bounced", "failed", "complained", "delayed"];
+const mailAlert = (r: PanelRow) => r.emailStatus !== null && MAIL_ALERT.includes(r.emailStatus);
 
 export type Bucket = { t: number; n: number };
 
@@ -64,6 +75,19 @@ function ModalityBadge({ modality, label }: { modality: PanelRow["modality"]; la
   );
 }
 
+function MailBadge({ status }: { status: string | null }) {
+  if (!status || !MAIL_ALERT.includes(status)) return null;
+  const retrasado = status === "delayed";
+  return (
+    <span
+      className={`inline-block rounded-sm border px-1.5 py-px align-middle text-[10px] font-semibold uppercase leading-snug tracking-wider ${retrasado ? "border-[var(--sea)] text-[var(--sea)]" : "border-[var(--accent-rose)] text-[var(--accent-rose)]"}`}
+      title="Estado del correo de confirmación según Resend"
+    >
+      correo {MAIL_LABEL[status] ?? status}
+    </span>
+  );
+}
+
 function MinorBadge() {
   return (
     <span className="inline-block rounded-sm bg-[var(--accent-rose)] px-1.5 py-px align-middle text-[10px] font-bold uppercase leading-snug tracking-wider text-[var(--pine-ink)]">
@@ -73,14 +97,14 @@ function MinorBadge() {
 }
 
 /* ---------- acciones de pago (formularios de servidor) ---------- */
-function StatusActions({ id, status }: { id: string; status: PanelRow["paymentStatus"] }) {
+function StatusActions({ id, status, nowrap = false }: { id: string; status: PanelRow["paymentStatus"]; nowrap?: boolean }) {
   const botones = [
     { to: "confirmed", label: "[ marcar pagado ]", cls: "text-[var(--pine)]" },
     { to: "pending", label: "[ pendiente ]", cls: "text-[var(--text-dim)]" },
     { to: "cancelled", label: "[ cancelar ]", cls: "text-[var(--accent-rose)]" },
   ] as const;
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1">
+    <div className={nowrap ? "flex flex-nowrap gap-x-4 whitespace-nowrap" : "flex flex-wrap gap-x-4 gap-y-1"}>
       {botones
         .filter((b) => status !== b.to)
         .map((b) => (
@@ -270,6 +294,18 @@ function Summary({ rows, buckets, nowMs, beforeOpening }: Props) {
         )}
       </Panel>
 
+      <Panel title="Correos de confirmación">
+        <Bars
+          items={[
+            ["entregados", rows.filter((x) => x.emailStatus === "delivered").length],
+            ["rebotados", rows.filter((x) => x.emailStatus === "bounced" || x.emailStatus === "failed" || x.emailStatus === "complained").length],
+            ["retrasados", rows.filter((x) => x.emailStatus === "delayed").length],
+            ["sin dato", rows.filter((x) => !x.emailStatus).length],
+          ]}
+        />
+        <p className="mt-2 text-[11px] text-[var(--text-faint)]">Un correo rebotado suele ser una errata en la dirección: hay que avisar a la persona por teléfono.</p>
+      </Panel>
+
       <div className="grid gap-3 md:grid-cols-2">
         <Panel title="Camisetas por talla">
           <Bars items={tallas} />
@@ -303,10 +339,10 @@ const PAGE = 25;
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 function csvOf(rows: PanelRow[]) {
-  const head = ["fecha", "nombre", "apellidos", "modalidad", "dni", "email", "telefono", "telefono_emergencia", "direccion", "talla", "club", "federado", "menor", "importe", "referencia", "estado"];
+  const head = ["fecha", "nombre", "apellidos", "modalidad", "dni", "email", "telefono", "telefono_emergencia", "direccion", "talla", "club", "federado", "menor", "correo", "importe", "referencia", "estado"];
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = rows.map((r) =>
-    [timeShort(r.createdAt), r.firstName, r.lastName, r.modalityLabel, r.dni, r.email, r.phone, r.emergencyPhone, r.address, r.shirtSize ?? "", r.club ?? "", r.federated ? "si" : "no", r.minor ? "si" : "no", r.priceLabel, r.paymentReference, STATUS_LABEL[r.paymentStatus]].map(esc).join(","),
+    [timeShort(r.createdAt), r.firstName, r.lastName, r.modalityLabel, r.dni, r.email, r.phone, r.emergencyPhone, r.address, r.shirtSize ?? "", r.club ?? "", r.federated ? "si" : "no", r.minor ? "si" : "no", r.emailStatus ? MAIL_LABEL[r.emailStatus] ?? r.emailStatus : "", r.priceLabel, r.paymentReference, STATUS_LABEL[r.paymentStatus]].map(esc).join(","),
   );
   return "﻿" + [head.join(","), ...lines].join("\r\n");
 }
@@ -338,6 +374,7 @@ function useFilters(rows: PanelRow[]) {
   const [size, setSize] = useState("all");
   const [club, setClub] = useState<"all" | "with" | "without">("all");
   const [onlyMinors, setOnlyMinors] = useState(false);
+  const [mail, setMail] = useState<"all" | "alert">("all");
   const [sortKey, setSortKey] = useState<SortKey>("fecha");
   const [dir, setDir] = useState<Dir>("desc");
   const [shown, setShown] = useState(PAGE);
@@ -352,6 +389,7 @@ function useFilters(rows: PanelRow[]) {
       if (club === "with" && !hasClub(r)) return false;
       if (club === "without" && hasClub(r)) return false;
       if (onlyMinors && !r.minor) return false;
+      if (mail === "alert" && !mailAlert(r)) return false;
       if (!t) return true;
       return norm(`${r.firstName} ${r.lastName} ${r.dni} ${r.email} ${r.phone} ${r.paymentReference} ${r.club ?? ""}`).includes(t);
     });
@@ -361,7 +399,7 @@ function useFilters(rows: PanelRow[]) {
       if (sortKey === "talla" && Boolean(a.shirtSize) !== Boolean(b.shirtSize)) return a.shirtSize ? -1 : 1;
       return compare(a, b, sortKey) * sign;
     });
-  }, [rows, q, mod, st, size, club, onlyMinors, sortKey, dir]);
+  }, [rows, q, mod, st, size, club, onlyMinors, mail, sortKey, dir]);
 
   // Elegir una columna de orden: la fecha empieza por lo más reciente y las demás de la A a la Z.
   const chooseSort = (k: SortKey) => {
@@ -377,14 +415,14 @@ function useFilters(rows: PanelRow[]) {
     } else chooseSort(k);
   };
 
-  return { q, setQ, mod, setMod, st, setSt, size, setSize, club, setClub, onlyMinors, setOnlyMinors, sortKey, dir, setDir, chooseSort, sortBy, shown, setShown, reset, filtered };
+  return { q, setQ, mod, setMod, st, setSt, size, setSize, club, setClub, onlyMinors, setOnlyMinors, mail, setMail, sortKey, dir, setDir, chooseSort, sortBy, shown, setShown, reset, filtered };
 }
 type Filters = ReturnType<typeof useFilters>;
 
 const chip = (active: boolean) =>
   `rounded-sm border px-2 py-1.5 text-xs ${active ? "border-[var(--pine)] bg-[var(--pine)] text-[var(--pine-ink)]" : "border-[var(--border)] text-[var(--text-dim)]"}`;
 
-function FiltersPanel({ f, total }: { f: Filters; total: number }) {
+function FiltersPanel({ f, total, alerts }: { f: Filters; total: number; alerts: number }) {
   const { reset } = f;
   function download() {
     const blob = new Blob([csvOf(f.filtered)], { type: "text/csv;charset=utf-8" });
@@ -448,6 +486,10 @@ function FiltersPanel({ f, total }: { f: Filters; total: number }) {
             <button key={t} type="button" onClick={() => { f.setSize(t); reset(); }} className={chip(f.size === t)}>{t === "all" ? "todas" : t}</button>
           ))}
         </Group>
+        <Group label="correo de confirmación">
+          <button type="button" onClick={() => { f.setMail("all"); reset(); }} className={chip(f.mail === "all")}>todos</button>
+          <button type="button" onClick={() => { f.setMail("alert"); reset(); }} className={chip(f.mail === "alert")}>con aviso ({alerts})</button>
+        </Group>
         <Group label="edad">
           <button type="button" onClick={() => { f.setOnlyMinors(false); reset(); }} className={chip(!f.onlyMinors)}>todos</button>
           <button type="button" onClick={() => { f.setOnlyMinors(true); reset(); }} className={chip(f.onlyMinors)}>solo menores</button>
@@ -487,6 +529,7 @@ function List({ f }: { f: Filters }) {
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-faint)]">
                     <ModalityBadge modality={r.modality} label={r.modalityLabel} />
                     {r.minor && <MinorBadge />}
+                    <MailBadge status={r.emailStatus} />
                     <span>
                       {timeShort(r.createdAt)} · talla {r.shirtSize ?? "—"}
                     </span>
@@ -501,6 +544,7 @@ function List({ f }: { f: Filters }) {
                     {(
                       [
                         ["email", r.email],
+                        ["correo", r.emailStatus ? MAIL_LABEL[r.emailStatus] ?? r.emailStatus : "sin dato"],
                         ["teléfono", r.phone],
                         ["emergencia", r.emergencyPhone || "—"],
                         ["dni", r.dni],
@@ -587,6 +631,11 @@ function Table({ f }: { f: Filters }) {
                     <MinorBadge />
                   </span>
                 )}
+                {mailAlert(r) && (
+                  <span className="ml-2">
+                    <MailBadge status={r.emailStatus} />
+                  </span>
+                )}
               </td>
               <td className="whitespace-nowrap px-3 py-2"><ModalityBadge modality={r.modality} label={r.modalityLabel} /></td>
               <td className="whitespace-nowrap px-3 py-2 text-[var(--text-dim)]">{r.shirtSize ?? "—"}</td>
@@ -599,7 +648,7 @@ function Table({ f }: { f: Filters }) {
               <td className="whitespace-nowrap px-3 py-2 text-[var(--ink)]">{r.priceLabel}</td>
               <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--ink)]">{r.paymentReference}</td>
               <td className={`whitespace-nowrap px-3 py-2 font-medium ${STATUS_COLOR[r.paymentStatus]}`}>{STATUS_LABEL[r.paymentStatus]}</td>
-              <td className="px-3 py-1"><StatusActions id={r.id} status={r.paymentStatus} /></td>
+              <td className="px-3 py-1"><StatusActions id={r.id} status={r.paymentStatus} nowrap /></td>
             </tr>
           ))}
           {f.filtered.length === 0 && (
@@ -613,17 +662,82 @@ function Table({ f }: { f: Filters }) {
   );
 }
 
+/* ---------- Tabla aparte a la derecha: correos que no han llegado ---------- */
+function MailTable({ rows }: { rows: PanelRow[] }) {
+  const items = rows.filter(mailAlert).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  return (
+    <section className="rounded-sm border border-[var(--border)] bg-[var(--paper-raised)]" aria-label="Correos con aviso">
+      <div className="border-b border-[var(--border)] px-3 py-2.5">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">Correos con aviso ({items.length})</h3>
+        <p className="mt-0.5 text-[11px] leading-snug text-[var(--text-faint)]">
+          {items.length === 0 ? "Todos los correos de confirmación han llegado." : "No han llegado. Suele ser una errata en la dirección: llamar a la persona."}
+        </p>
+      </div>
+      {items.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[28rem] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-left">
+                {["nombre", "teléfono", "correo escrito", "estado", "ref."].map((h) => (
+                  <th key={h} className="whitespace-nowrap px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--sea)]">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((r) => (
+                <tr key={r.id} className="border-b border-[var(--border)] align-top last:border-0">
+                  <td className="px-2.5 py-2 font-semibold text-[var(--ink)]">
+                    {r.firstName} {r.lastName}
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-2">
+                    <a href={`tel:${r.phone}`} className="text-[var(--ink)] underline underline-offset-2">
+                      {r.phone}
+                    </a>
+                  </td>
+                  <td className="px-2.5 py-2 text-[var(--text-dim)] [overflow-wrap:anywhere]">{r.email}</td>
+                  <td className="px-2.5 py-2">
+                    <MailBadge status={r.emailStatus} />
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-2 text-[var(--text-faint)]">{r.paymentReference.slice(5)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /* ---------- Contenedor con pestañas ---------- */
 export function PanelView(props: Props) {
-  const [tab, setTab] = useState<"resumen" | "lista" | "tabla">("resumen");
+  const [tab, setTab] = useState<"resumen" | "lista" | "tabla" | "problemas">("resumen");
   const f = useFilters(props.rows);
+  const alerts = props.rows.filter(mailAlert).length;
   const tabs = [
     ["resumen", "resumen", ""],
     ["lista", `lista (${props.rows.length})`, ""],
     ["tabla", "tabla", "hidden md:inline-block"],
+    ["problemas", `problemas${alerts > 0 ? ` (${alerts})` : ""}`, alerts > 0 ? "text-[var(--accent-rose)]" : ""],
   ] as const;
   return (
     <div className="mt-8 font-mono">
+      {alerts > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-[var(--accent-rose)] bg-[var(--paper-raised)] px-3 py-2.5 text-xs text-[var(--ink)]">
+          <span>
+            <strong className="text-[var(--accent-rose)]">AVISO</strong> · {alerts} {alerts === 1 ? "correo de confirmación no ha llegado" : "correos de confirmación no han llegado"} (rebotados o retrasados).
+          </span>
+          <button
+            type="button"
+            onClick={() => setTab("problemas")}
+            className="underline underline-offset-2"
+          >
+            [ ver quiénes ]
+          </button>
+        </div>
+      )}
       <div role="tablist" aria-label="Vistas del panel" className="mb-3 flex gap-1 border-b border-[var(--border)]">
         {tabs.map(([id, label, cls]) => (
           <button
@@ -632,7 +746,7 @@ export function PanelView(props: Props) {
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${cls} ${tab === id ? "border-[var(--pine)] text-[var(--ink)]" : "border-transparent text-[var(--text-faint)]"}`}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${cls} ${tab === id ? "border-[var(--pine)] text-[var(--ink)]" : `border-transparent ${cls.includes("accent-rose") ? "" : "text-[var(--text-faint)]"}`}`}
           >
             {label}
           </button>
@@ -641,10 +755,11 @@ export function PanelView(props: Props) {
       {tab === "resumen" && <Summary {...props} />}
       {(tab === "lista" || tab === "tabla") && (
         <div className="flex flex-col gap-3">
-          <FiltersPanel f={f} total={props.rows.length} />
+          <FiltersPanel f={f} total={props.rows.length} alerts={alerts} />
           {tab === "lista" ? <List f={f} /> : <Table f={f} />}
         </div>
       )}
+      {tab === "problemas" && <MailTable rows={props.rows} />}
     </div>
   );
 }

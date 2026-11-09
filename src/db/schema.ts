@@ -44,6 +44,11 @@ export const registrations = pgTable("registrations", {
   // Borrado lógico: una fila con deleted_at no cuenta para plazas, DNI ni
   // confirmación, y no sale en el panel. Toda lectura de negocio filtra IS NULL.
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
+
+  // Estado del correo de confirmación según Resend (webhook): delivered, bounced,
+  // delayed, complained o failed. Nulo = sin dato todavía. Lo usa el panel para avisar.
+  emailStatus: text("email_status"),
+  emailStatusAt: timestamp("email_status_at", { withTimezone: true }),
 }, (t) => [
   // Creado a mano en la Neon real; se declara aquí para que drizzle-kit no lo
   // borre ni lo recree distinto.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { desc, eq, isNull } from "drizzle-orm";
+import { desc, eq, getTableColumns, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { registrations, adminPatternConfig } from "@/db/schema";
 import { isValidSession, isValidPatternGate, adminLabel, ADMIN_COOKIE, PATTERN_GATE_COOKIE } from "@/lib/admin-auth";
@@ -118,11 +118,26 @@ export default async function AdminPage({
   }
 
   // Sin las filas eliminadas (borrado lógico).
+  const { emailStatus: _estadoCorreo, emailStatusAt: _estadoCorreoAt, ...columnas } = getTableColumns(registrations);
+  void _estadoCorreo;
+  void _estadoCorreoAt;
   const rows = await getDb()
-    .select()
+    .select(columnas)
     .from(registrations)
     .where(isNull(registrations.deletedAt))
     .orderBy(desc(registrations.createdAt));
+  // Estado del correo de confirmación (lo rellena el webhook de Resend). Aparte y
+  // con try/catch: si la columna todavía no existe, el panel sigue funcionando sin los avisos.
+  const estadosCorreo = new Map<string, string>();
+  try {
+    const filas = await getDb()
+      .select({ ref: registrations.paymentReference, estado: registrations.emailStatus })
+      .from(registrations)
+      .where(isNull(registrations.deletedAt));
+    for (const f of filas) if (f.estado) estadosCorreo.set(f.ref, f.estado);
+  } catch {
+    /* sin columna todavía */
+  }
 
   const fechas = rows.map((r) => new Date(r.createdAt));
   const { ultimaHora, ultimas24h, ultima } = resumenEnVivo(fechas);
@@ -149,6 +164,7 @@ export default async function AdminPage({
     paymentStatus: r.paymentStatus,
     paymentUpdatedBy: r.paymentUpdatedBy,
     minor: needsGuardianConsent(r.birthDate),
+    emailStatus: estadosCorreo.get(r.paymentReference) ?? null,
   }));
 
   return (
