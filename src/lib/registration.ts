@@ -20,8 +20,8 @@ export type Modality = keyof typeof MODALITIES;
 // ÚNICA fuente de precios: el servidor lo recalcula al guardar la inscripción
 // (registerAction) y nunca se fía de un importe que venga del navegador.
 export const PRICES_CENTS = {
-  trekking: { federated: 1800, standard: 2000 },
-  andarines: { federated: 1300, standard: 1500 },
+  trekking: { federated: 2000, standard: 2300 },
+  andarines: { federated: 1500, standard: 1800 },
 } as const;
 
 export function priceCents(modality: Modality, federated: boolean): number {
