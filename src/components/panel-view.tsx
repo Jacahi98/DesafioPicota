@@ -55,6 +55,23 @@ const dayLabel = (ms: number) => fmt(ms, { weekday: "short", day: "numeric" }).r
 const whenLabel = (ms: number) => fmt(ms, { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const timeShort = (iso: string) => fmt(new Date(iso).getTime(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
+function ModalityBadge({ modality, label }: { modality: PanelRow["modality"]; label: string }) {
+  const cls = modality === "trekking" ? "border-[var(--pine)] text-[var(--pine)]" : "border-[var(--sea)] bg-[var(--sea)] text-[var(--pine-ink)]";
+  return (
+    <span className={`inline-block rounded-sm border px-1.5 py-px align-middle text-[10px] font-semibold uppercase leading-snug tracking-wider ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function MinorBadge() {
+  return (
+    <span className="inline-block rounded-sm bg-[var(--accent-rose)] px-1.5 py-px align-middle text-[10px] font-bold uppercase leading-snug tracking-wider text-[var(--pine-ink)]">
+      menor
+    </span>
+  );
+}
+
 /* ---------- acciones de pago (formularios de servidor) ---------- */
 function StatusActions({ id, status }: { id: string; status: PanelRow["paymentStatus"] }) {
   const botones = [
@@ -130,18 +147,24 @@ function HourChart({ buckets, nowMs, sel, onSel }: { buckets: Bucket[]; nowMs: n
   );
 }
 
-function CumulativeChart({ buckets, nowMs }: { buckets: Bucket[]; nowMs: number }) {
-  const H = 120, padL = 26, padB = 14, padT = 8, padR = 4;
+function CumulativeChart({ buckets, nowMs, base }: { buckets: Bucket[]; nowMs: number; base: number }) {
+  const H = 138, padL = 26, padB = 28, padT = 10, padR = 4;
   const n = buckets.length;
   const bw = (W - padL - padR) / n;
+  // Arranca en `base` (los registros anteriores a la apertura, contados como los primeros)
+  // y sube al final de cada hora ya empezada.
   const hasta = buckets.filter((b) => b.t <= nowMs);
-  const pts = hasta.map((_, i) => ({ i, v: hasta.slice(0, i + 1).reduce((s, x) => s + x.n, 0) }));
-  const acc = pts.length ? pts[pts.length - 1].v : 0;
+  const pts = [
+    { x: padL, v: base },
+    ...hasta.map((_, i) => ({ x: padL + (i + 1) * bw, v: base + hasta.slice(0, i + 1).reduce((s, x) => s + x.n, 0) })),
+  ];
+  const acc = pts[pts.length - 1].v;
   const max = Math.max(1, acc);
   const plotH = H - padB - padT;
   const y = (v: number) => padT + plotH - (v / max) * plotH;
-  const line = pts.map((p) => `${padL + (p.i + 1) * bw},${y(p.v)}`).join(" ");
-  const area = pts.length ? `${padL},${y(0)} ${line} ${padL + pts.length * bw},${y(0)}` : "";
+  const line = pts.map((p) => `${p.x},${y(p.v)}`).join(" ");
+  const last = pts[pts.length - 1];
+  const area = `${padL},${y(0)} ${line} ${last.x},${y(0)}`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Preinscripciones acumuladas">
       {[0, Math.round(max / 2), max].map((t) => (
@@ -152,9 +175,27 @@ function CumulativeChart({ buckets, nowMs }: { buckets: Bucket[]; nowMs: number 
           </text>
         </g>
       ))}
-      {area && <polygon points={area} fill="var(--pine)" opacity="0.18" />}
-      {line && <polyline points={line} fill="none" stroke="var(--pine)" strokeWidth="1.6" strokeLinejoin="round" />}
-      {pts.length > 0 && <circle cx={padL + pts.length * bw} cy={y(acc)} r="3" fill="var(--sea)" />}
+      {buckets.map((b, i) =>
+        i % 6 === 0 ? (
+          <g key={b.t}>
+            <line x1={padL + i * bw} x2={padL + i * bw} y1={padT} y2={padT + plotH} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="1.5 2.5" />
+            <text x={padL + i * bw} y={H - 14} textAnchor="middle" fontSize="8" fill="var(--text-faint)">
+              {hourLabel(b.t)}
+            </text>
+            {i % 12 === 0 && (
+              <text x={padL + i * bw} y={H - 4} textAnchor="middle" fontSize="7.5" fill="var(--sea)">
+                {dayLabel(b.t)}
+              </text>
+            )}
+          </g>
+        ) : null,
+      )}
+      <polygon points={area} fill="var(--pine)" opacity="0.18" />
+      <polyline points={line} fill="none" stroke="var(--pine)" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx={last.x} cy={y(acc)} r="3" fill="var(--sea)" />
+      <text x={Math.min(last.x + 6, W - padR)} y={Math.max(y(acc) - 6, 9)} textAnchor={last.x + 40 > W ? "end" : "start"} fontSize="9" fill="var(--ink)">
+        {acc}
+      </text>
     </svg>
   );
 }
@@ -221,10 +262,10 @@ function Summary({ rows, buckets, nowMs, beforeOpening }: Props) {
       </Panel>
 
       <Panel title="Acumuladas">
-        <CumulativeChart buckets={buckets} nowMs={nowMs} />
+        <CumulativeChart buckets={buckets} nowMs={nowMs} base={beforeOpening} />
         {beforeOpening > 0 && (
           <p className="mt-1 text-[11px] text-[var(--text-faint)]">
-            {beforeOpening} {beforeOpening === 1 ? "registro anterior" : "registros anteriores"} a la apertura (pruebas) no salen en las gráficas.
+            Incluye {beforeOpening} {beforeOpening === 1 ? "registro anterior" : "registros anteriores"} a la apertura, contados como los primeros.
           </p>
         )}
       </Panel>
@@ -239,7 +280,7 @@ function Summary({ rows, buckets, nowMs, beforeOpening }: Props) {
           <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">Estado de pago</p>
           <Bars items={estado} />
           <p className="mt-3 text-[11px] text-[var(--text-faint)]">
-            {fed} con licencia federada · {menores} {menores === 1 ? "menor" : "menores"} (autorización firmada)
+            {fed} con licencia federada · {menores} {menores === 1 ? "menor" : "menores"}
           </p>
         </Panel>
       </div>
@@ -248,45 +289,105 @@ function Summary({ rows, buckets, nowMs, beforeOpening }: Props) {
 }
 
 /* ---------- Lista ---------- */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1 text-[10px] uppercase tracking-wider text-[var(--sea)]">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const PAGE = 25;
+const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 function csvOf(rows: PanelRow[]) {
-  const head = ["fecha", "nombre", "apellidos", "modalidad", "dni", "email", "telefono", "telefono_emergencia", "direccion", "talla", "club", "federado", "importe", "referencia", "estado"];
+  const head = ["fecha", "nombre", "apellidos", "modalidad", "dni", "email", "telefono", "telefono_emergencia", "direccion", "talla", "club", "federado", "menor", "importe", "referencia", "estado"];
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = rows.map((r) =>
-    [timeShort(r.createdAt), r.firstName, r.lastName, r.modalityLabel, r.dni, r.email, r.phone, r.emergencyPhone, r.address, r.shirtSize ?? "", r.club ?? "", r.federated ? "si" : "no", r.priceLabel, r.paymentReference, STATUS_LABEL[r.paymentStatus]].map(esc).join(","),
+    [timeShort(r.createdAt), r.firstName, r.lastName, r.modalityLabel, r.dni, r.email, r.phone, r.emergencyPhone, r.address, r.shirtSize ?? "", r.club ?? "", r.federated ? "si" : "no", r.minor ? "si" : "no", r.priceLabel, r.paymentReference, STATUS_LABEL[r.paymentStatus]].map(esc).join(","),
   );
   return "﻿" + [head.join(","), ...lines].join("\r\n");
 }
 
-function List({ rows }: { rows: PanelRow[] }) {
+/* ---------- filtros y orden (compartidos por Lista y Tabla) ---------- */
+type SortKey = "fecha" | "nombre" | "dni" | "talla";
+type Dir = "asc" | "desc";
+const SORT_LABEL: Record<SortKey, string> = { fecha: "fecha de inscripción", nombre: "nombre", dni: "DNI", talla: "talla de camiseta" };
+const SORT_SHORT: Record<SortKey, string> = { fecha: "fecha", nombre: "nombre", dni: "DNI", talla: "talla" };
+const hasClub = (r: PanelRow) => Boolean(r.club && r.club.trim());
+
+function compare(a: PanelRow, b: PanelRow, key: SortKey): number {
+  switch (key) {
+    case "fecha":
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    case "nombre":
+      return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "es", { sensitivity: "base" });
+    case "dni":
+      return a.dni.localeCompare(b.dni, "es", { numeric: true, sensitivity: "base" });
+    case "talla":
+      return SIZES.indexOf(a.shirtSize ?? "") - SIZES.indexOf(b.shirtSize ?? "");
+  }
+}
+
+function useFilters(rows: PanelRow[]) {
   const [q, setQ] = useState("");
   const [mod, setMod] = useState<"all" | PanelRow["modality"]>("all");
   const [st, setSt] = useState<"all" | PanelRow["paymentStatus"]>("all");
   const [size, setSize] = useState("all");
+  const [club, setClub] = useState<"all" | "with" | "without">("all");
   const [onlyMinors, setOnlyMinors] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("fecha");
+  const [dir, setDir] = useState<Dir>("desc");
   const [shown, setShown] = useState(PAGE);
-  const [open, setOpen] = useState<string | null>(null);
+  const reset = () => setShown(PAGE);
 
   const filtered = useMemo(() => {
     const t = norm(q.trim());
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (mod !== "all" && r.modality !== mod) return false;
       if (st !== "all" && r.paymentStatus !== st) return false;
       if (size !== "all" && (r.shirtSize ?? "") !== size) return false;
+      if (club === "with" && !hasClub(r)) return false;
+      if (club === "without" && hasClub(r)) return false;
       if (onlyMinors && !r.minor) return false;
       if (!t) return true;
       return norm(`${r.firstName} ${r.lastName} ${r.dni} ${r.email} ${r.phone} ${r.paymentReference} ${r.club ?? ""}`).includes(t);
     });
-  }, [rows, q, mod, st, size, onlyMinors]);
+    const sign = dir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      // Las filas sin talla van siempre al final, sea cual sea el sentido.
+      if (sortKey === "talla" && Boolean(a.shirtSize) !== Boolean(b.shirtSize)) return a.shirtSize ? -1 : 1;
+      return compare(a, b, sortKey) * sign;
+    });
+  }, [rows, q, mod, st, size, club, onlyMinors, sortKey, dir]);
 
-  const reset = () => setShown(PAGE);
-  const chip = (active: boolean) =>
-    `rounded-sm border px-2.5 py-1.5 text-xs ${active ? "border-[var(--pine)] bg-[var(--pine)] text-[var(--pine-ink)]" : "border-[var(--border)] text-[var(--text-dim)]"}`;
+  // Elegir una columna de orden: la fecha empieza por lo más reciente y las demás de la A a la Z.
+  const chooseSort = (k: SortKey) => {
+    setSortKey(k);
+    setDir(k === "fecha" ? "desc" : "asc");
+    reset();
+  };
+  // Pulsar una cabecera de la tabla: si ya era la columna, cambia el sentido; si no, la elige.
+  const sortBy = (k: SortKey) => {
+    if (k === sortKey) {
+      setDir((d) => (d === "asc" ? "desc" : "asc"));
+      reset();
+    } else chooseSort(k);
+  };
 
+  return { q, setQ, mod, setMod, st, setSt, size, setSize, club, setClub, onlyMinors, setOnlyMinors, sortKey, dir, setDir, chooseSort, sortBy, shown, setShown, reset, filtered };
+}
+type Filters = ReturnType<typeof useFilters>;
+
+const chip = (active: boolean) =>
+  `rounded-sm border px-2 py-1.5 text-xs ${active ? "border-[var(--pine)] bg-[var(--pine)] text-[var(--pine-ink)]" : "border-[var(--border)] text-[var(--text-dim)]"}`;
+
+function FiltersPanel({ f, total }: { f: Filters; total: number }) {
+  const { reset } = f;
   function download() {
-    const blob = new Blob([csvOf(filtered)], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([csvOf(f.filtered)], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "preinscripciones.csv";
@@ -295,51 +396,84 @@ function List({ rows }: { rows: PanelRow[] }) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-
   return (
     <div className="flex flex-col gap-3">
       <input
         type="search"
-        value={q}
+        value={f.q}
         onChange={(e) => {
-          setQ(e.target.value);
+          f.setQ(e.target.value);
           reset();
         }}
         placeholder="buscar nombre, DNI, email, teléfono, localizador…"
         aria-label="Buscar preinscripciones"
         className="w-full rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-3 py-2.5 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--pine)]"
       />
-      <div className="flex flex-wrap gap-1.5">
-        {([["all", "todas"], ["trekking", "Trail"], ["andarines", "Andarines"]] as const).map(([v, l]) => (
-          <button key={v} type="button" onClick={() => { setMod(v); reset(); }} className={chip(mod === v)}>{l}</button>
-        ))}
-        <span className="mx-1 w-px bg-[var(--border)]" />
-        {([["all", "todos"], ["pending", "pendiente"], ["confirmed", "pagado"], ["cancelled", "cancelado"]] as const).map(([v, l]) => (
-          <button key={v} type="button" onClick={() => { setSt(v); reset(); }} className={chip(st === v)}>{l}</button>
-        ))}
+      <div className="flex flex-col gap-2.5 md:grid md:grid-cols-2 md:gap-x-6">
+        <Group label="ordenar por">
+          {(Object.keys(SORT_SHORT) as SortKey[]).map((k) => (
+            <button key={k} type="button" onClick={() => f.chooseSort(k)} className={chip(f.sortKey === k)}>
+              {SORT_SHORT[k]}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              f.setDir(f.dir === "asc" ? "desc" : "asc");
+              reset();
+            }}
+            className={`${chip(false)} min-w-[7.5rem] text-[var(--ink)]`}
+            aria-label="Cambiar sentido del orden"
+          >
+            {f.dir === "asc" ? "↑ ascendente" : "↓ descendente"}
+          </button>
+        </Group>
+        <Group label="modalidad">
+          {([["all", "todas"], ["trekking", "Trail"], ["andarines", "Andarines"]] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => { f.setMod(v); reset(); }} className={chip(f.mod === v)}>{l}</button>
+          ))}
+        </Group>
+        <Group label="pago">
+          {([["all", "todos"], ["pending", "pendiente"], ["confirmed", "pagado"], ["cancelled", "cancelado"]] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => { f.setSt(v); reset(); }} className={chip(f.st === v)}>{l}</button>
+          ))}
+        </Group>
+        <Group label="club">
+          {([["all", "todos"], ["with", "con club"], ["without", "sin club"]] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => { f.setClub(v); reset(); }} className={chip(f.club === v)}>{l}</button>
+          ))}
+        </Group>
+        <Group label="talla de camiseta">
+          {["all", ...SIZES].map((t) => (
+            <button key={t} type="button" onClick={() => { f.setSize(t); reset(); }} className={chip(f.size === t)}>{t === "all" ? "todas" : t}</button>
+          ))}
+        </Group>
+        <Group label="edad">
+          <button type="button" onClick={() => { f.setOnlyMinors(false); reset(); }} className={chip(!f.onlyMinors)}>todos</button>
+          <button type="button" onClick={() => { f.setOnlyMinors(true); reset(); }} className={chip(f.onlyMinors)}>solo menores</button>
+        </Group>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <select
-          value={size}
-          onChange={(e) => { setSize(e.target.value); reset(); }}
-          aria-label="Filtrar por talla"
-          className="rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-2 py-1.5 text-xs text-[var(--text-dim)]"
-        >
-          <option value="all">talla: todas</option>
-          {["XS", "S", "M", "L", "XL", "XXL"].map((t) => <option key={t} value={t}>talla {t}</option>)}
-        </select>
-        <button type="button" onClick={() => { setOnlyMinors((v) => !v); reset(); }} className={chip(onlyMinors)}>solo menores</button>
-        <button type="button" onClick={download} className="ml-auto text-xs underline underline-offset-2 text-[var(--text-dim)]">[ descargar CSV ]</button>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] text-[var(--text-faint)]">
+          {f.filtered.length === total ? `${total} preinscripciones` : `${f.filtered.length} de ${total} con estos filtros`} · orden: {SORT_LABEL[f.sortKey]} {f.dir === "asc" ? "↑" : "↓"}
+        </p>
+        <button type="button" onClick={download} className="shrink-0 text-xs text-[var(--text-dim)] underline underline-offset-2">[ descargar CSV ]</button>
       </div>
-      <p className="text-[11px] text-[var(--text-faint)]">
-        {filtered.length === rows.length ? `${rows.length} preinscripciones` : `${filtered.length} de ${rows.length} con estos filtros`}
-      </p>
+    </div>
+  );
+}
 
+/* ---------- Lista ---------- */
+function List({ f }: { f: Filters }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const { filtered, shown, setShown } = f;
+  return (
+    <div className="flex flex-col gap-2">
       <ul className="flex flex-col gap-1.5">
         {filtered.slice(0, shown).map((r) => {
           const isOpen = open === r.id;
           return (
-            <li key={r.id} className="rounded-sm border border-[var(--border)] bg-[var(--paper-raised)]">
+            <li key={r.id} className={`rounded-sm border border-[var(--border)] border-l-[3px] bg-[var(--paper-raised)] ${r.modality === "trekking" ? "border-l-[var(--pine)]" : "border-l-[var(--sea)]"}`}>
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.id)}
@@ -349,10 +483,14 @@ function List({ rows }: { rows: PanelRow[] }) {
                 <span className="min-w-0">
                   <span className="block truncate text-[13px] font-semibold text-[var(--ink)]">
                     {r.firstName} {r.lastName}
-                    {r.minor && <span className="ml-1.5 text-[10px] font-normal text-[var(--accent-rose)]">menor</span>}
                   </span>
-                  <span className="block text-[11px] text-[var(--text-faint)]">
-                    {timeShort(r.createdAt)} · {r.modalityLabel} · talla {r.shirtSize ?? "—"}
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-faint)]">
+                    <ModalityBadge modality={r.modality} label={r.modalityLabel} />
+                    {r.minor && <MinorBadge />}
+                    <span>
+                      {timeShort(r.createdAt)} · talla {r.shirtSize ?? "—"}
+                    </span>
+                    {hasClub(r) && <span className="text-[var(--sea)]">· club</span>}
                   </span>
                 </span>
                 <span className={`text-[11px] font-medium ${STATUS_COLOR[r.paymentStatus]}`}>{STATUS_LABEL[r.paymentStatus]}</span>
@@ -378,7 +516,6 @@ function List({ rows }: { rows: PanelRow[] }) {
                       </div>
                     ))}
                   </dl>
-                  {r.minor && <p className="mt-2 text-[11px] text-[var(--accent-rose)]">Entregar autorización firmada en la recogida de dorsal.</p>}
                   {r.paymentUpdatedBy && <p className="mt-1 text-[10px] text-[var(--text-faint)]">estado cambiado por {r.paymentUpdatedBy.toLowerCase()}</p>}
                   <div className="mt-1.5 border-t border-[var(--border)] pt-1">
                     <StatusActions id={r.id} status={r.paymentStatus} />
@@ -400,27 +537,58 @@ function List({ rows }: { rows: PanelRow[] }) {
 }
 
 /* ---------- Tabla completa (pantallas anchas) ---------- */
-function Table({ rows }: { rows: PanelRow[] }) {
-  const heads = ["fecha", "nombre", "modalidad", "talla", "dni", "email", "teléfono", "emergencia", "club", "federado", "importe", "referencia", "estado", ""];
+function Table({ f }: { f: Filters }) {
+  const cols: { label: string; key?: SortKey }[] = [
+    { label: "fecha", key: "fecha" },
+    { label: "nombre", key: "nombre" },
+    { label: "modalidad" },
+    { label: "talla", key: "talla" },
+    { label: "dni", key: "dni" },
+    { label: "email" },
+    { label: "teléfono" },
+    { label: "emergencia" },
+    { label: "club" },
+    { label: "federado" },
+    { label: "importe" },
+    { label: "referencia" },
+    { label: "estado" },
+    { label: "" },
+  ];
   return (
     <div className="overflow-x-auto rounded-sm border border-[var(--border)] bg-[var(--paper-raised)]">
       <table className="w-full min-w-[1280px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-left">
-            {heads.map((h) => (
-              <th key={h} className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]">{h}</th>
+            {cols.map((c) => (
+              <th
+                key={c.label}
+                aria-sort={c.key && c.key === f.sortKey ? (f.dir === "asc" ? "ascending" : "descending") : undefined}
+                className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sea)]"
+              >
+                {c.key ? (
+                  <button type="button" onClick={() => f.sortBy(c.key!)} className={`uppercase tracking-wider hover:text-[var(--ink)] ${c.key === f.sortKey ? "text-[var(--ink)]" : ""}`}>
+                    {c.label} {c.key === f.sortKey ? (f.dir === "asc" ? "↑" : "↓") : <span className="opacity-40">↕</span>}
+                  </button>
+                ) : (
+                  c.label
+                )}
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {f.filtered.map((r) => (
             <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
               <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--text-faint)]">{timeShort(r.createdAt)}</td>
               <td className="whitespace-nowrap px-3 py-2 text-[var(--ink)]">
                 {r.firstName} {r.lastName}
-                {r.minor && <span className="ml-2 text-xs text-[var(--accent-rose)]">menor · autorización</span>}
+                {r.minor && (
+                  <span className="ml-2">
+                    <MinorBadge />
+                  </span>
+                )}
               </td>
-              <td className="whitespace-nowrap px-3 py-2 text-[var(--text-dim)]">{r.modalityLabel}</td>
+              <td className="whitespace-nowrap px-3 py-2"><ModalityBadge modality={r.modality} label={r.modalityLabel} /></td>
               <td className="whitespace-nowrap px-3 py-2 text-[var(--text-dim)]">{r.shirtSize ?? "—"}</td>
               <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--text-dim)]">{r.dni}</td>
               <td className="whitespace-nowrap px-3 py-2 text-[var(--text-dim)]">{r.email}</td>
@@ -434,6 +602,11 @@ function Table({ rows }: { rows: PanelRow[] }) {
               <td className="px-3 py-1"><StatusActions id={r.id} status={r.paymentStatus} /></td>
             </tr>
           ))}
+          {f.filtered.length === 0 && (
+            <tr>
+              <td colSpan={14} className="px-3 py-8 text-center text-[var(--text-faint)]">{"// nada con estos filtros"}</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -443,6 +616,7 @@ function Table({ rows }: { rows: PanelRow[] }) {
 /* ---------- Contenedor con pestañas ---------- */
 export function PanelView(props: Props) {
   const [tab, setTab] = useState<"resumen" | "lista" | "tabla">("resumen");
+  const f = useFilters(props.rows);
   const tabs = [
     ["resumen", "resumen", ""],
     ["lista", `lista (${props.rows.length})`, ""],
@@ -465,8 +639,12 @@ export function PanelView(props: Props) {
         ))}
       </div>
       {tab === "resumen" && <Summary {...props} />}
-      {tab === "lista" && <List rows={props.rows} />}
-      {tab === "tabla" && <Table rows={props.rows} />}
+      {(tab === "lista" || tab === "tabla") && (
+        <div className="flex flex-col gap-3">
+          <FiltersPanel f={f} total={props.rows.length} />
+          {tab === "lista" ? <List f={f} /> : <Table f={f} />}
+        </div>
+      )}
     </div>
   );
 }

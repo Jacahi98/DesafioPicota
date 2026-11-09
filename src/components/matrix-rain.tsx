@@ -22,16 +22,29 @@ export function MatrixRain() {
     const FONT_SIZE = 16;
     let columns = 0;
     let drops: number[] = [];
+    // Solo la mitad de las columnas llevan lluvia: queda un fondo más espaciado y sutil.
+    let activa: boolean[] = [];
 
+    // En el móvil, al hacer scroll la barra del navegador sube y baja y la ventana
+    // cambia de ALTO (evento resize): antes eso borraba el lienzo y reiniciaba la
+    // lluvia. Ahora el lienzo mide siempre la altura grande de la ventana (100lvh)
+    // y solo se reinicia si cambia el ANCHO (girar el móvil, cambiar el tamaño).
+    let lastWidth = window.innerWidth;
     function resize() {
       if (!canvas) return;
       canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.height = Math.max(canvas.clientHeight, window.innerHeight);
       columns = Math.ceil(canvas.width / FONT_SIZE);
-      drops = Array.from({ length: columns }, () => Math.random() * -50);
+      drops = Array.from({ length: columns }, () => Math.random() * -80);
+      activa = Array.from({ length: columns }, () => Math.random() < 0.45);
+    }
+    function onResize() {
+      if (window.innerWidth === lastWidth) return;
+      lastWidth = window.innerWidth;
+      resize();
     }
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", onResize);
 
     if (reduceMotion) {
       // Un fotograma quieto en vez de animación continua: sigue leyéndose
@@ -44,32 +57,33 @@ export function MatrixRain() {
         const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
         ctx!.fillText(ch, i * FONT_SIZE, Math.random() * canvas.height);
       }
-      return () => window.removeEventListener("resize", resize);
+      return () => window.removeEventListener("resize", onResize);
     }
 
     let raf = 0;
     let lastTime = 0;
     function draw(time: number) {
       raf = requestAnimationFrame(draw);
-      if (time - lastTime < 55) return; // ritmo de caída, no el de fps
+      if (time - lastTime < 95) return; // ritmo de caída (más lento y tranquilo), no el de fps
       lastTime = time;
       if (!canvas || !ctx) return;
 
-      ctx.fillStyle = "rgba(3, 10, 4, 0.15)"; // estela: no se limpia del todo cada frame
+      ctx.fillStyle = "rgba(3, 10, 4, 0.2)"; // estela corta: no se limpia del todo cada frame
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.font = `${FONT_SIZE}px monospace`;
 
       for (let i = 0; i < columns; i++) {
+        if (!activa[i]) continue;
         const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
         const y = drops[i] * FONT_SIZE;
         // La cabeza de cada columna sale más brillante que la cola —
         // degradado en dos capas en vez de una sola, no una por carácter.
-        ctx.fillStyle = "#c8ffd8";
+        ctx.fillStyle = "rgba(150, 255, 190, 0.55)"; // cabeza apagada, sin el blanco brillante
         ctx.fillText(ch, i * FONT_SIZE, y);
-        ctx.fillStyle = "rgba(0, 255, 102, 0.55)";
+        ctx.fillStyle = "rgba(0, 255, 102, 0.3)";
         ctx.fillText(ch, i * FONT_SIZE, y - FONT_SIZE);
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.985) {
           drops[i] = 0;
         } else {
           drops[i] += 1;
@@ -79,7 +93,7 @@ export function MatrixRain() {
     raf = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -88,7 +102,8 @@ export function MatrixRain() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 opacity-70"
+      className="pointer-events-none fixed left-0 top-0 z-0 h-screen w-full opacity-35"
+      style={{ height: "100lvh" }}
     />
   );
 }
