@@ -14,6 +14,7 @@ import {
   ADMIN_COOKIE,
   ADMIN_PATH,
   PATTERN_GATE_COOKIE,
+  PATTERN_GATE_TTL_S,
   PATTERN_MIN_DOTS,
   isValidPatternGate,
   patternGateCookieValue,
@@ -88,20 +89,34 @@ export async function verifyPatternAction(formData: FormData) {
     redirect(`${ADMIN_URL}?error=pattern`);
   }
 
-  // Dura solo lo justo para sobrevivir a la redirección que viene a
-  // continuación (esta acción no puede renderizar la página directamente,
-  // así que hace falta ALGUNA cookie para cruzar ese salto) — no una
-  // "sesión" de verdad. En la práctica hay que dibujar el patrón en cada
-  // visita, tal cual se pidió: nada de recordar el patrón un rato.
+  // El patrón vale mientras se use el panel: la cookie lleva la hora de la
+  // última actividad y caduca tras PATTERN_GATE_TTL_S segundos sin ella (ver
+  // admin-auth.ts y keepAliveAction).
   const cookieStore = await cookies();
   cookieStore.set(PATTERN_GATE_COOKIE, patternGateCookieValue(), {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
     path: ADMIN_URL,
-    maxAge: 20,
+    maxAge: PATTERN_GATE_TTL_S,
   });
   redirect(ADMIN_URL);
+}
+
+// El panel avisa (solo si ha habido actividad de la persona) para renovar la
+// ventana de inactividad. Si el patrón ya había caducado no hace nada: hay que
+// dibujarlo otra vez.
+export async function keepAliveAction(): Promise<void> {
+  const cookieStore = await cookies();
+  if (!isValidPatternGate(cookieStore.get(PATTERN_GATE_COOKIE)?.value)) return;
+  if (!isValidSession(cookieStore.get(ADMIN_COOKIE)?.value)) return;
+  cookieStore.set(PATTERN_GATE_COOKIE, patternGateCookieValue(), {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: ADMIN_URL,
+    maxAge: PATTERN_GATE_TTL_S,
+  });
 }
 
 export async function loginAction(formData: FormData) {

@@ -91,14 +91,23 @@ export function verifyPatternHash(sequence: string, salt: string, expectedHash: 
   return timingSafeStringEqual(actual, expectedHash);
 }
 
-// Puerta de patrón: la cookie dura segundos, solo para cruzar la
-// redirección tras verificarlo — no es una sesión. Hay que dibujarlo en
-// cada visita (ver maxAge en verifyPatternAction).
-export function patternGateCookieValue(): string {
-  return sign("pattern-ok");
+// Puerta de patrón con INACTIVIDAD: una vez dibujado el patrón, el panel se
+// queda abierto mientras se use, y vuelve a pedirlo tras PATTERN_GATE_TTL_S
+// segundos sin actividad (5 minutos). La cookie lleva la hora de la última
+// actividad firmada; mientras se interactúa con el panel, keepAliveAction la
+// renueva. Una cookie antigua o manipulada no sirve.
+export const PATTERN_GATE_TTL_S = 5 * 60;
+
+export function patternGateCookieValue(now: number = Date.now()): string {
+  const ts = String(now);
+  return `${ts}.${sign(`pattern-ok:${ts}`)}`;
 }
 
-export function isValidPatternGate(cookieValue: string | undefined): boolean {
+export function isValidPatternGate(cookieValue: string | undefined, now: number = Date.now()): boolean {
   if (!cookieValue) return false;
-  return timingSafeStringEqual(cookieValue, sign("pattern-ok"));
+  const [ts, signature] = cookieValue.split(".");
+  if (!ts || !signature || !/^[0-9]{10,16}$/.test(ts)) return false;
+  const age = now - Number(ts);
+  if (age < 0 || age > PATTERN_GATE_TTL_S * 1000) return false;
+  return timingSafeStringEqual(signature, sign(`pattern-ok:${ts}`));
 }

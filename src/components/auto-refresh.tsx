@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { keepAliveAction } from "@/app/panel/actions";
 
 // Panel "en vivo": vuelve a pedir la página al servidor cada pocos segundos
 // mientras la pestaña está a la vista (no gasta nada con la pestaña oculta) y
@@ -11,6 +12,8 @@ export function AutoRefresh({ everyMs = 15000 }: { everyMs?: number }) {
   const [live, setLive] = useState(true);
   const [now, setNow] = useState<number | null>(null);
   const [lastAt, setLastAt] = useState<number | null>(null);
+  // ¿Ha habido actividad de la persona desde la última vez? Solo entonces se renueva el patrón.
+  const active = useRef(false);
 
   const refresh = () => {
     router.refresh();
@@ -28,15 +31,37 @@ export function AutoRefresh({ everyMs = 15000 }: { everyMs?: number }) {
   }, []);
 
   useEffect(() => {
+    const mark = () => {
+      active.current = true;
+    };
+    const events = ["pointermove", "pointerdown", "keydown", "scroll", "touchstart"] as const;
+    events.forEach((e) => window.addEventListener(e, mark, { passive: true }));
+    return () => events.forEach((e) => window.removeEventListener(e, mark));
+  }, []);
+
+  useEffect(() => {
     if (!live) return;
-    const tick = () => {
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      const wasActive = active.current;
+      active.current = false;
+      if (wasActive) {
+        try {
+          await keepAliveAction();
+        } catch {
+          /* si falla, el refresco siguiente enseñará la puerta del patrón */
+        }
+      }
+      router.refresh();
+      setLastAt(Date.now());
+    };
+    const id = setInterval(() => void tick(), everyMs);
+    const onVisible = () => {
       if (document.visibilityState === "visible") {
-        router.refresh();
-        setLastAt(Date.now());
+        active.current = true;
+        void tick();
       }
     };
-    const id = setInterval(tick, everyMs);
-    const onVisible = () => document.visibilityState === "visible" && tick();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(id);

@@ -14,7 +14,6 @@ import {
   REG_MIN_FILL_MS,
 } from "@/lib/registration";
 import { sendConfirmationEmail } from "@/lib/email";
-import { isValidTestToken } from "@/lib/test-access";
 import { clientIp } from "@/lib/client-ip";
 import { tooManyAttempts, recordAttempt } from "@/lib/rate-limit";
 import { countActiveRegistrations, insertRegistrationIfRoom, uniqueViolationOf } from "@/lib/register-db";
@@ -34,12 +33,8 @@ export async function registerAction(
   _prevState: RegisterState,
   formData: FormData
 ): Promise<RegisterState> {
-  // 1) Cierre. El enlace de prueba privado (ver lib/test-access.ts) salta solo
-  // este paso: el resto de comprobaciones (trampa, tiempo, IP, validación, DNI
-  // único) se aplican igual, así el ensayo recorre el mismo camino que el real.
-  const testToken = formData.get("testToken");
-  const isPrivateTest = typeof testToken === "string" && testToken !== "" && isValidTestToken(testToken);
-  if (!isPrivateTest && !isRegistrationOpen()) {
+  // 1) Cierre.
+  if (!isRegistrationOpen()) {
     return {
       status: "error",
       formError:
