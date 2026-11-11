@@ -4,6 +4,7 @@ import { Footer } from "@/components/footer";
 import { BackHome } from "@/components/back-home";
 import { RegistrationForm } from "@/components/registration-form";
 import { RegistrationClock } from "@/components/registration-clock";
+import { PreinscriptionChecker } from "@/components/preinscription-checker";
 import {
   isRegistrationOpen,
   registrationPhase,
@@ -78,6 +79,8 @@ export default async function PreinscripcionPage() {
                 13 de enero.
               </p>
             </div>
+
+            <PreinscriptionChecker />
 
             {!open ? (
               <>
