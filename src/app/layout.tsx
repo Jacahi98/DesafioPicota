@@ -77,7 +77,8 @@ export default function RootLayout({
       className={`${publicSans.variable} ${plexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      {/* suppressHydrationWarning: extensiones del navegador (p. ej. Grammarly) añaden atributos al <body> antes de hidratar. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <WaveLines />
         <MotionProvider>{children}</MotionProvider>
         <Analytics />
