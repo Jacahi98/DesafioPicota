@@ -12,6 +12,7 @@ import {
 } from "framer-motion";
 import { ChevronsLeftRight, type LucideIcon } from "lucide-react";
 import { RouteMap } from "@/components/route-map";
+import { TrainingRouteLink } from "@/components/training-route-link";
 import { ElevationProfile } from "@/components/elevation-profile";
 import {
   ComparisonSlider,
@@ -730,6 +731,8 @@ export function RouteSection() {
           </div>
           <div style={{ height: PIN_SCROLL_PX }} aria-hidden="true" />
         </div>
+
+        <TrainingRouteLink />
 
         <div ref={timelineRef} className="relative mx-auto mt-20 max-w-2xl pl-8">
           <div
