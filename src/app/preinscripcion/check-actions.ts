@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { registrations } from "@/db/schema";
 import { REFERENCE_PATTERN, REF_WINDOW_MIN, REF_MAX_PER_IP } from "@/lib/registration";
@@ -10,6 +10,10 @@ import { tooManyAttempts, recordAttempt } from "@/lib/rate-limit";
 
 export type CheckState = {
   status: "idle" | "found" | "notfound" | "invalid" | "limited" | "error";
+  // Número de corredor: orden de llegada de la preinscripción (1 = la primera). Solo con status "found".
+  runnerNumber?: number;
+  // Modalidad de esa preinscripción (para dibujar su recorrido en la imagen de compartir). Solo con status "found".
+  modality?: "trekking" | "andarines";
 };
 
 // Comprobador de preinscripción: se mete el localizador y solo se responde SI o NO.
@@ -28,8 +32,9 @@ export async function checkPreinscriptionAction(_prev: CheckState, formData: For
     if (await tooManyAttempts("chk:", ip, REF_WINDOW_MIN, REF_MAX_PER_IP)) return { status: "limited" };
     await recordAttempt("chk:", ip);
 
-    const [row] = await getDb()
-      .select({ id: registrations.id })
+    const db = getDb();
+    const [row] = await db
+      .select({ id: registrations.id, createdAt: registrations.createdAt, modality: registrations.modality })
       .from(registrations)
       .where(
         and(
@@ -39,7 +44,14 @@ export async function checkPreinscriptionAction(_prev: CheckState, formData: For
         )
       )
       .limit(1);
-    return { status: row ? "found" : "notfound" };
+    if (!row) return { status: "notfound" };
+    // Número de corredor = cuántas filas hay creadas hasta esa (contando también las bajas, para que el número no cambie si alguien se da de baja).
+    // Se cuenta dentro de la base de datos: pasar la fecha por JavaScript recorta los microsegundos y la propia fila se quedaba fuera (daba uno menos).
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(registrations)
+      .where(sql`${registrations.createdAt} <= (select r.created_at from registrations r where r.id = ${row.id})`);
+    return { status: "found", runnerNumber: n, modality: row.modality };
   } catch {
     return { status: "error" };
   }

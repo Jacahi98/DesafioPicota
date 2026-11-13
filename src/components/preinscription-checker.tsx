@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { checkPreinscriptionAction, type CheckState } from "@/app/preinscripcion/check-actions";
 import { CONTACT_EMAIL } from "@/lib/registration";
+import { RunnerShare } from "@/components/runner-share";
 
 const initialState: CheckState = { status: "idle" };
 
@@ -50,10 +51,18 @@ export function PreinscriptionChecker() {
 
       <div aria-live="polite" className="mt-4 text-sm leading-relaxed">
         {state.status === "found" && (
-          <p className="rounded-sm border border-[var(--pine)] px-4 py-3 text-[var(--ink)]">
-            <strong>Sí, estás preinscrito.</strong> Guarda tu localizador: lo necesitarás para inscribirte el 13 de enero, un día antes de que abran las
-            inscripciones para todo el mundo.
-          </p>
+          <div className="rounded-sm border border-[var(--pine)] px-4 py-4 text-[var(--ink)]">
+            <p>
+              <strong>Sí, estás preinscrito.</strong> Guarda tu localizador: lo necesitarás para inscribirte el 13 de enero, un día antes de que abran las
+              inscripciones para todo el mundo.
+            </p>
+            {typeof state.runnerNumber === "number" && (
+              <>
+                <p className="mt-3 text-sm text-[var(--text-dim)]">Corredor número <strong className="font-mono text-[var(--pine)]">{state.runnerNumber}</strong></p>
+                <RunnerShare key={`${state.runnerNumber}-${state.modality}`} number={state.runnerNumber} modality={state.modality ?? "trekking"} />
+              </>
+            )}
+          </div>
         )}
         {(state.status === "notfound" || state.status === "invalid") && (
           <p className="rounded-sm border border-[var(--accent-rose)] px-4 py-3 text-[var(--ink)]">
