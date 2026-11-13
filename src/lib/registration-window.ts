@@ -10,6 +10,11 @@ export const REGISTRATION_DEADLINE = new Date("2026-11-11T11:00:00+01:00");
 // El círculo del menú empieza a llenarse este tiempo antes de la apertura.
 export const REGISTRATION_RING_MS = 14 * 24 * 60 * 60 * 1000;
 
+// true si la hora REAL ya pasó el cierre, aunque en desarrollo la fase se fuerce a "abierta" (sirve para que lo local se vea como en producción).
+export function isDeadlinePassed(now: Date = new Date()): boolean {
+  return now >= REGISTRATION_DEADLINE;
+}
+
 export type RegistrationPhase = "before" | "open" | "closed";
 
 // INTERRUPTOR TEMPORAL DE PRUEBA: con REGISTRATION_TEST_OPEN=1 en el entorno

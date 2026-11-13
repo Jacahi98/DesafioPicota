@@ -5,10 +5,12 @@ import { BackHome } from "@/components/back-home";
 import { RegistrationForm } from "@/components/registration-form";
 import { RegistrationClock } from "@/components/registration-clock";
 import { PreinscriptionChecker } from "@/components/preinscription-checker";
+import { InscriptionFormat } from "@/components/inscription-format";
 import {
   isRegistrationOpen,
   registrationPhase,
   isTestOpen,
+  isDeadlinePassed,
   madridDateTimeLabel,
   PLAZAS_MAX,
   REGISTRATION_ENABLED,
@@ -39,6 +41,8 @@ export default async function PreinscripcionPage() {
   const open = isRegistrationOpen();
   const phase = registrationPhase();
   const testMode = isTestOpen();
+  // Por la hora real, aunque en desarrollo la fase se fuerce a "abierta": así lo local se ve igual que en producción (sin formulario ni reloj).
+  const closed = isDeadlinePassed();
   // Si la BD falla se trata como "no agotado": registerAction sigue siendo la
   // autoridad y rechaza el envío si de verdad no quedan plazas.
   let soldOut = false;
@@ -56,6 +60,15 @@ export default async function PreinscripcionPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14 sm:px-8 sm:py-20">
         <BackHome />
         <h1 className="mt-6 text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">Preinscripción</h1>
+        {closed && (
+          <div
+            role="status"
+            className="mt-6 flex items-center gap-3 rounded-sm border-2 border-[var(--accent-rose)] bg-[var(--paper-raised)] px-5 py-4"
+          >
+            <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-rose)]">Plazo terminado</span>
+            <span className="text-[15px] text-[var(--ink)]">La preinscripción ya está cerrada. ¡Gracias a todas las personas que os habéis apuntado!</span>
+          </div>
+        )}
         {!REGISTRATION_ENABLED ? (
           <>
             <p className="mt-10 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]">
@@ -67,6 +80,7 @@ export default async function PreinscripcionPage() {
             <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-dim)]">
               Desafío Picota se corre el 24 de abril de 2027 en Liencres, Cantabria.
             </p>
+            {!closed && (
             <div className="mt-6 rounded-sm border border-[var(--border)] bg-[var(--paper-raised)] px-5 py-4 text-sm leading-relaxed text-[var(--text-dim)]">
               <p>
                 <strong className="text-[var(--ink)]">La preinscripción te asegura tu talla de camiseta, tu inscripción y un regalo.</strong>{" "}
@@ -79,10 +93,12 @@ export default async function PreinscripcionPage() {
                 13 de enero.
               </p>
             </div>
+            )}
 
             <PreinscriptionChecker />
+            <InscriptionFormat />
 
-            {!open ? (
+            {closed ? null : !open ? (
               <>
                 {phase === "before" && (
                   <div className="mt-6">
